@@ -1,5 +1,7 @@
 # uri-template
 
+**THIS PACKAGE IS STILL UNDER DEVELOPMENT** if you use it make sure you lock into a specific version.
+
 ## Install
 
 Via Composer
