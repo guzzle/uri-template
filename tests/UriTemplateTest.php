@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace GuzzleHttp\Tests;
+namespace GuzzleHttp\Utility\Tests;
 
-use GuzzleHttp\UriTemplate;
+use GuzzleHttp\Utility\UriTemplate;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \GuzzleHttp\Psr7\UriTemplate
+ * @covers \GuzzleHttp\Utility\UriTemplate
  */
-class UriTemplateTest extends TestCase
+final class UriTemplateTest extends TestCase
 {
     public function templateProvider(): array
     {

@@ -24,12 +24,12 @@
     },
     "autoload": {
         "psr-4": {
-            "GuzzleHttp\\": "src"
+            "GuzzleHttp\\Utility\\": "src"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "GuzzleHttp\\Tests\\": "tests"
+            "GuzzleHttp\\Utility\\Tests\\": "tests"
         }
     },
     "extra": {
