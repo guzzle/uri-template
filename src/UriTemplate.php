@@ -127,7 +127,7 @@ final class UriTemplate
                 $kvp = [];
                 foreach ($variable as $key => $var) {
                     if ($isAssoc) {
-                        $key = rawurlencode($key);
+                        $key = rawurlencode((string)$key);
                         $isNestedArray = is_array($var);
                     } else {
                         $isNestedArray = false;
@@ -187,7 +187,7 @@ final class UriTemplate
                 if ($value['modifier'] === ':') {
                     $variable = substr($variable, 0, $value['position']);
                 }
-                $expanded = rawurlencode($variable);
+                $expanded = rawurlencode((string)$variable);
                 if ($parsed['operator'] === '+' || $parsed['operator'] === '#') {
                     $expanded = self::decodeReserved($expanded);
                 }
