@@ -142,7 +142,7 @@ final class UriTemplate
                         if ($isAssoc) {
                             if ($isNestedArray) {
                                 // Nested arrays must allow for deeply nested structures.
-                                $var = http_build_query([$key => $var], '', '&', PHP_QUERY_RFC3986)
+                                $var = http_build_query([$key => $var], '', '&', PHP_QUERY_RFC3986);
                             } else {
                                 $var = $key . '=' . $var;
                             }
