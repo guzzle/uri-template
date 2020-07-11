@@ -105,8 +105,6 @@ final class UriTemplate
      */
     private static function expandMatch(array $matches, array $variables): string
     {
-        static $rfc1738to3986 = ['+' => '%20', '%7e' => '~'];
-
         $replacements = [];
         $parsed = self::parseExpression($matches[1]);
         $prefix = self::$operatorHash[$parsed['operator']]['prefix'];
@@ -135,9 +133,7 @@ final class UriTemplate
 
                     if (!$isNestedArray) {
                         $var = rawurlencode($var);
-                        if ($parsed['operator'] === '+' ||
-                            $parsed['operator'] === '#'
-                        ) {
+                        if ($parsed['operator'] === '+' || $parsed['operator'] === '#') {
                             $var = self::decodeReserved($var);
                         }
                     }
@@ -145,12 +141,8 @@ final class UriTemplate
                     if ($value['modifier'] === '*') {
                         if ($isAssoc) {
                             if ($isNestedArray) {
-                                // Nested arrays must allow for deeply nested
-                                // structures.
-                                $var = strtr(
-                                    http_build_query([$key => $var]),
-                                    $rfc1738to3986
-                                );
+                                // Nested arrays must allow for deeply nested structures.
+                                $var = http_build_query([$key => $var], '', '&', PHP_QUERY_RFC3986);
                             } else {
                                 $var = $key . '=' . $var;
                             }
