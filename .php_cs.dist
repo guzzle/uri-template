@@ -74,7 +74,7 @@ $config = PhpCsFixer\Config::create()
         'trim_array_spaces' => true,
         'visibility_required' => true,
         'yoda_style' => false,
-        // 'native_function_invocation' => true,
+        'native_function_invocation' => true,
     ])
     ->setFinder(
         PhpCsFixer\Finder::create()
