@@ -9,7 +9,7 @@
 >
     <testsuites>
         <testsuite name="AllTests">
-            <directory>tests</directory>
+            <directory>tests/</directory>
         </testsuite>
     </testsuites>
     <filter>
