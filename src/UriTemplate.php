@@ -12,7 +12,7 @@ namespace GuzzleHttp\Utility;
 final class UriTemplate
 {
     /**
-     * @var array Hash for quick operator lookups
+     * @var array<string, array{prefix:string, joiner:string, query:bool}> Hash for quick operator lookups
      */
     private static $operatorHash = [
         '' => ['prefix' => '', 'joiner' => ',', 'query' => false],
@@ -26,7 +26,7 @@ final class UriTemplate
     ];
 
     /**
-     * @var array Delimiters
+     * @var string[] Delimiters
      */
     private static $delims = [
         ':',
@@ -50,7 +50,7 @@ final class UriTemplate
     ];
 
     /**
-     * @var array<int, string> Percent encoded delimiters
+     * @var string[] Percent encoded delimiters
      */
     private static $delimsPct = [
         '%3A',
@@ -74,25 +74,34 @@ final class UriTemplate
     ];
 
     /**
-     * @param mixed[] $variables Variables to use in the template expansion
+     * @param array<string,mixed> $variables Variables to use in the template expansion
      *
-     * @return string|string[]|null
+     * @throws \RuntimeException
      */
-    public static function expand(string $template, array $variables)
+    public static function expand(string $template, array $variables): string
     {
         if (false === \strpos($template, '{')) {
             return $template;
         }
 
-        return \preg_replace_callback(
+        /** @var string|null */
+        $result = \preg_replace_callback(
             '/\{([^\}]+)\}/',
             self::expandMatchCallback($variables),
             $template
         );
+
+        if (null === $result) {
+            throw new \RuntimeException(\sprintf('Unable to process template: %s', \preg_last_error_msg()));
+        }
+
+        return $result;
     }
 
     /**
-     * @param mixed[] $variables Variables to use in the template expansion
+     * @param array<string,mixed> $variables Variables to use in the template expansion
+     *
+     * @return callable(string[]): string
      */
     private static function expandMatchCallback(array $variables): callable
     {
@@ -104,8 +113,8 @@ final class UriTemplate
     /**
      * Process an expansion
      *
-     * @param mixed[]  $variables Variables to use in the template expansion
-     * @param string[] $matches   Matches met in the preg_replace_callback
+     * @param array<string,mixed> $variables Variables to use in the template expansion
+     * @param string[]            $matches   Matches met in the preg_replace_callback
      *
      * @return string Returns the replacement string
      */
@@ -122,6 +131,7 @@ final class UriTemplate
                 continue;
             }
 
+            /** @var mixed */
             $variable = $variables[$value['value']];
             $actuallyUseQuery = $useQuery;
             $expanded = '';
@@ -129,16 +139,17 @@ final class UriTemplate
             if (\is_array($variable)) {
                 $isAssoc = self::isAssoc($variable);
                 $kvp = [];
+                /** @var mixed $var */
                 foreach ($variable as $key => $var) {
                     if ($isAssoc) {
-                        $key = \rawurlencode((string)$key);
+                        $key = \rawurlencode((string) $key);
                         $isNestedArray = \is_array($var);
                     } else {
                         $isNestedArray = false;
                     }
 
                     if (!$isNestedArray) {
-                        $var = \rawurlencode($var);
+                        $var = \rawurlencode((string) $var);
                         if ($parsed['operator'] === '+' || $parsed['operator'] === '#') {
                             $var = self::decodeReserved($var);
                         }
@@ -150,17 +161,18 @@ final class UriTemplate
                                 // Nested arrays must allow for deeply nested structures.
                                 $var = \http_build_query([$key => $var], '', '&', \PHP_QUERY_RFC3986);
                             } else {
-                                $var = $key . '=' . $var;
+                                $var = \sprintf('%s=%s', (string) $key, (string) $var);
                             }
                         } elseif ($key > 0 && $actuallyUseQuery) {
-                            $var = $value['value'] . '=' . $var;
+                            $var = \sprintf('%s=%s', $value['value'], (string) $var);
                         }
                     }
 
+                    /** @var string */
                     $kvp[$key] = $var;
                 }
 
-                if (empty($variable)) {
+                if (0 === \count($variable)) {
                     $actuallyUseQuery = false;
                 } elseif ($value['modifier'] === '*') {
                     $expanded = \implode($joiner, $kvp);
@@ -176,16 +188,16 @@ final class UriTemplate
                         // a comma separated list of keys followed by their
                         // respective values.
                         foreach ($kvp as $k => &$v) {
-                            $v = $k . ',' . $v;
+                            $v = \sprintf('%s,%s', $k, $v);
                         }
                     }
                     $expanded = \implode(',', $kvp);
                 }
             } else {
-                if ($value['modifier'] === ':') {
-                    $variable = \substr($variable, 0, $value['position']);
+                if ($value['modifier'] === ':' && isset($value['position'])) {
+                    $variable = \substr((string) $variable, 0, $value['position']);
                 }
-                $expanded = \rawurlencode((string)$variable);
+                $expanded = \rawurlencode((string) $variable);
                 if ($parsed['operator'] === '+' || $parsed['operator'] === '#') {
                     $expanded = self::decodeReserved($expanded);
                 }
@@ -195,7 +207,7 @@ final class UriTemplate
                 if (!$expanded && $joiner !== '&') {
                     $expanded = $value['value'];
                 } else {
-                    $expanded = $value['value'] . '=' . $expanded;
+                    $expanded = \sprintf('%s=%s', $value['value'], $expanded);
                 }
             }
 
@@ -204,7 +216,7 @@ final class UriTemplate
 
         $ret = \implode($joiner, $replacements);
         if ($ret && $prefix) {
-            return $prefix . $ret;
+            return \sprintf('%s%s', $prefix, $ret);
         }
 
         return $ret;
@@ -215,7 +227,7 @@ final class UriTemplate
      *
      * @param string $expression Expression to parse
      *
-     * @return array<string, mixed> Returns an associative array of parts
+     * @return array{operator:string, values:array<array{value:string, modifier:(''|'*'|':'), position?:int}>}
      */
     private static function parseExpression(string $expression): array
     {
@@ -223,23 +235,25 @@ final class UriTemplate
 
         if (isset(self::$operatorHash[$expression[0]])) {
             $result['operator'] = $expression[0];
+            /** @var string */
             $expression = \substr($expression, 1);
         } else {
             $result['operator'] = '';
         }
 
+        $result['values'] = [];
         foreach (\explode(',', $expression) as $value) {
             $value = \trim($value);
             $varspec = [];
             if ($colonPos = \strpos($value, ':')) {
-                $varspec['value'] = \substr($value, 0, $colonPos);
+                $varspec['value'] = (string) \substr($value, 0, $colonPos);
                 $varspec['modifier'] = ':';
-                $varspec['position'] = (int)\substr($value, $colonPos + 1);
+                $varspec['position'] = (int) \substr($value, $colonPos + 1);
             } elseif (\substr($value, -1) === '*') {
                 $varspec['modifier'] = '*';
-                $varspec['value'] = \substr($value, 0, -1);
+                $varspec['value'] = (string) \substr($value, 0, -1);
             } else {
-                $varspec['value'] = (string)$value;
+                $varspec['value'] = $value;
                 $varspec['modifier'] = '';
             }
             $result['values'][] = $varspec;
@@ -255,8 +269,6 @@ final class UriTemplate
      * This assumption is a tradeoff for accuracy in favor of speed, but it
      * should work in almost every case where input is supplied for a URI
      * template.
-     *
-     * @param array $array Array to check
      */
     private static function isAssoc(array $array): bool
     {
