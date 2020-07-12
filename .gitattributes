@@ -9,4 +9,5 @@
 /.gitignore                  export-ignore
 /.php_cs.dist                export-ignore
 /Makefile                    export-ignore
+/phpstan.neon.dist           export-ignore
 /phpunit.xml.dist            export-ignore

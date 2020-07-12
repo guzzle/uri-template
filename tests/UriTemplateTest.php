@@ -31,7 +31,7 @@ final class UriTemplateTest extends TestCase
             'empty_keys' => [],
         ];
 
-        return array_map(function ($t) use ($params) {
+        return \array_map(static function ($t) use ($params) {
             $t[] = $params;
             return $t;
         }, [
@@ -169,7 +169,7 @@ final class UriTemplateTest extends TestCase
         $method = $class->getMethod('parseExpression');
         $method->setAccessible(true);
 
-        $exp = substr($exp, 1, -1);
+        $exp = \substr($exp, 1, -1);
         self::assertSame($data, $method->invokeArgs($template, [$exp]));
     }
 
