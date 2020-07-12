@@ -76,19 +76,26 @@ final class UriTemplate
     /**
      * @param mixed[] $variables Variables to use in the template expansion
      *
-     * @return string|string[]|null
+     * @throws \RuntimeException
      */
-    public static function expand(string $template, array $variables)
+    public static function expand(string $template, array $variables): string
     {
         if (false === \strpos($template, '{')) {
             return $template;
         }
 
-        return \preg_replace_callback(
+        /** @var string|null */
+        $result = \preg_replace_callback(
             '/\{([^\}]+)\}/',
             self::expandMatchCallback($variables),
             $template
         );
+
+        if (null === $result) {
+            throw new \RuntimeException(\sprintf('Unable to process template: %s', \preg_last_error_msg()));
+        }
+
+        return $result;
     }
 
     /**
