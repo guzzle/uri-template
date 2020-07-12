@@ -125,6 +125,7 @@ final class UriTemplate
         $prefix = self::$operatorHash[$parsed['operator']]['prefix'];
         $joiner = self::$operatorHash[$parsed['operator']]['joiner'];
         $useQuery = self::$operatorHash[$parsed['operator']]['query'];
+        $allUndefined = true;
 
         foreach ($parsed['values'] as $value) {
             if (!isset($variables[$value['value']])) {
@@ -194,6 +195,7 @@ final class UriTemplate
                     $expanded = \implode(',', $kvp);
                 }
             } else {
+                $allUndefined = false;
                 if ($value['modifier'] === ':' && isset($value['position'])) {
                     $variable = \substr((string) $variable, 0, $value['position']);
                 }
@@ -215,8 +217,16 @@ final class UriTemplate
         }
 
         $ret = \implode($joiner, $replacements);
-        if ($ret && $prefix) {
-            return \sprintf('%s%s', $prefix, $ret);
+
+        if ('' === $ret) {
+            // Spec section 3.2.4 and 3.2.5
+            if (false === $allUndefined && ('#' === $prefix || '.' === $prefix)) {
+                return $prefix;
+            }
+        } else {
+            if ('' !== $prefix) {
+                return \sprintf('%s%s', $prefix, $ret);
+            }
         }
 
         return $ret;
