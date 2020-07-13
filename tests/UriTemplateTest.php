@@ -14,7 +14,7 @@ final class UriTemplateTest extends TestCase
 {
     public function templateProvider(): array
     {
-        $params = [
+        $variables = [
             'var'   => 'value',
             'hello' => 'Hello World!',
             'empty' => '',
@@ -31,8 +31,8 @@ final class UriTemplateTest extends TestCase
             'empty_keys' => [],
         ];
 
-        return \array_map(static function ($t) use ($params) {
-            $t[] = $params;
+        return \array_map(static function ($t) use ($variables) {
+            $t[] = $variables;
             return $t;
         }, [
                ['foo',                 'foo'],
@@ -118,9 +118,9 @@ final class UriTemplateTest extends TestCase
     /**
      * @dataProvider templateProvider
      */
-    public function testExpandsUriTemplates(string $template, string $expansion, array $params): void
+    public function testExpandsUriTemplates(string $template, string $expansion, array $variables): void
     {
-        self::assertSame($expansion, UriTemplate::expand($template, $params));
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
 
     public function expressionProvider(): array
@@ -195,5 +195,34 @@ final class UriTemplateTest extends TestCase
         ]);
 
         self::assertSame('http://example.com/foo/bar/one,two?query=test&more%5B0%5D=fun&more%5B1%5D=ice%20cream&baz%5Bbar%5D=fizz&baz%5Btest%5D=buzz&bam=boo', $result);
+    }
+
+    public function specComplianceProvider(): \Generator
+    {
+        foreach (['spec-examples.json', 'spec-examples-by-section.json', 'extended-tests.json'] as $filename) {
+            foreach (self::parseSpecExamples($filename) as $example) {
+                yield $example;
+            }
+        }
+    }
+
+    /**
+     * @dataProvider specComplianceProvider
+     */
+    public function testSpecCompliance(string $template, array $expansions, array $variables): void
+    {
+        self::assertContains(UriTemplate::expand($template, $variables), $expansions);
+    }
+
+    private static function parseSpecExamples(string $filename): \Generator
+    {
+        $examples = \file_get_contents(\sprintf('%s/../vendor/uri-template/tests/%s', __DIR__, $filename));
+
+        foreach (\json_decode($examples, true) as $example) {
+            $variables = $example['variables'];
+            foreach ($example['testcases'] as $case) {
+                yield [$case[0], (array) $case[1], $variables];
+            }
+        }
     }
 }
