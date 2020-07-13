@@ -20,7 +20,7 @@ final class UriTemplateTest extends TestCase
             'empty' => '',
             'path'  => '/foo/bar',
             'x'     => '1024',
-            'y'     => '768',
+            'y'     => 768,
             'null'  => null,
             'list'  => ['red', 'green', 'blue'],
             'keys'  => [
