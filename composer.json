@@ -25,12 +25,12 @@
     },
     "autoload": {
         "psr-4": {
-            "GuzzleHttp\\Utility\\": "src"
+            "GuzzleHttp\\UriTemplate\\": "src"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "GuzzleHttp\\Utility\\Tests\\": "tests"
+            "GuzzleHttp\\UriTemplate\\Tests\\": "tests"
         }
     },
     "extra": {
