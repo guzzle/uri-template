@@ -4,10 +4,13 @@ All notable changes to `uri-template` will be documented in this file.
 
 Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) principles.
 
-## v0.2.0 - 2020-07-12
+## v0.2.0 - 2020-07-18
 
 ### Added
 - Support PHP 7.1 and 8.0
+
+### Changed
+- Renamed `GuzzleHttp\Utility\` to `GuzzleHttp\UriTemplate\`
 
 ### Fixed
 - Delegate RFC 3986 query string encoding to PHP
