@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace GuzzleHttp\Utility;
+namespace GuzzleHttp\UriTemplate;
 
 /**
  * Expands URI templates. Userland implementation of PECL uri_template.

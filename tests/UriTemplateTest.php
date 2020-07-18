@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace GuzzleHttp\Utility\Tests;
+namespace GuzzleHttp\UriTemplate\Tests;
 
-use GuzzleHttp\Utility\UriTemplate;
+use GuzzleHttp\UriTemplate\UriTemplate;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \GuzzleHttp\Utility\UriTemplate
+ * @covers \GuzzleHttp\UriTemplate\UriTemplate
  */
 final class UriTemplateTest extends TestCase
 {
