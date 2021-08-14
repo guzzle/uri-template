@@ -21,16 +21,3 @@ jobs:
           REQUIRE_DEV: true
         with:
           args: analyze --no-progress
-
-  php-cs-fixer:
-    name: PHP-CS-Fixer
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: PHP-CS-Fixer
-        uses: OskarStark/php-cs-fixer-ga@2.16.4
-        with:
-          args: --dry-run --diff-format udiff

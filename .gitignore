@@ -4,6 +4,3 @@ vendor
 phpstan.neon
 phpunit.xml
 .phpunit.result.cache
-
-.php_cs
-.php_cs.cache
