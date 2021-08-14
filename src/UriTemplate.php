@@ -169,7 +169,8 @@ final class UriTemplate
                         }
                     }
 
-                    /** @var string */
+                    /** @var string $var */
+
                     $kvp[$key] = $var;
                 }
 
