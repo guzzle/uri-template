@@ -1,19 +1,31 @@
 {
     "name": "guzzlehttp/uri-template",
-    "type": "library",
     "description": "A polyfill class for uri_template of PHP",
     "keywords": [
         "guzzlehttp",
         "uri-template"
     ],
-    "homepage": "https://github.com/guzzlehttp/uri-template",
     "license": "MIT",
     "authors": [
         {
+            "name": "Graham Campbell",
+            "email": "hello@gjcampbell.co.uk",
+            "homepage": "https://github.com/GrahamCampbell"
+        },
+        {
+            "name": "Michael Dowling",
+            "email": "mtdowling@gmail.com",
+            "homepage": "https://github.com/mtdowling"
+        },
+        {
             "name": "George Mponos",
             "email": "gmponos@gmail.com",
-            "homepage": "https://github.com/gmponos",
-            "role": "Developer"
+            "homepage": "https://github.com/gmponos"
+        },
+        {
+            "name": "Tobias Nyholm",
+            "email": "tobias.nyholm@gmail.com",
+            "homepage": "https://github.com/Nyholm"
         }
     ],
     "repositories": [
