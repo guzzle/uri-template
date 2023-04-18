@@ -170,7 +170,6 @@ final class UriTemplate
                     }
 
                     /** @var string $var */
-
                     $kvp[$key] = $var;
                 }
 
