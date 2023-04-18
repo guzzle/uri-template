@@ -46,6 +46,7 @@
         "symfony/polyfill-php80": "^1.17"
     },
     "require-dev": {
+        "bamarni/composer-bin-plugin": "^1.8.1",
         "phpunit/phpunit" : "^8.5.19 || ^9.5.8",
         "uri-template/tests": "1.0.0"
     },
@@ -60,6 +61,9 @@
         }
     },
     "config": {
+        "allow-plugins": {
+            "bamarni/composer-bin-plugin": true
+        },
         "preferred-install": "dist",
         "sort-packages": true
     }
