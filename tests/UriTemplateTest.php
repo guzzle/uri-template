@@ -15,24 +15,25 @@ final class UriTemplateTest extends TestCase
     public function templateProvider(): array
     {
         $variables = [
-            'var'   => 'value',
+            'var' => 'value',
             'hello' => 'Hello World!',
             'empty' => '',
-            'path'  => '/foo/bar',
-            'x'     => '1024',
-            'y'     => 768,
-            'null'  => null,
-            'list'  => ['red', 'green', 'blue'],
-            'keys'  => [
-                "semi"  => ';',
-                "dot"   => '.',
-                "comma" => ','
+            'path' => '/foo/bar',
+            'x' => '1024',
+            'y' => 768,
+            'null' => null,
+            'list' => ['red', 'green', 'blue'],
+            'keys' => [
+                'semi' => ';',
+                'dot' => '.',
+                'comma' => ',',
             ],
             'empty_keys' => [],
         ];
 
         return \array_map(static function ($t) use ($variables) {
             $t[] = $variables;
+
             return $t;
         }, [
                ['foo',                 'foo'],
@@ -111,7 +112,7 @@ final class UriTemplateTest extends TestCase
                // Test that multiple expansions can be set
                ['http://{var}/{var:2}{?keys*}', 'http://value/va?semi=%3B&dot=.&comma=%2C'],
                // Test more complex query string stuff
-               ['http://www.test.com{+path}{?var,keys*}', 'http://www.test.com/foo/bar?var=value&semi=%3B&dot=.&comma=%2C']
+               ['http://www.test.com{+path}{?var,keys*}', 'http://www.test.com/foo/bar?var=value&semi=%3B&dot=.&comma=%2C'],
            ]);
     }
 
@@ -129,31 +130,31 @@ final class UriTemplateTest extends TestCase
             [
                 '{+var*}', [
                 'operator' => '+',
-                'values'   => [
-                    ['modifier' => '*', 'value' => 'var']
-                ]
+                'values' => [
+                    ['modifier' => '*', 'value' => 'var'],
+                ],
             ],
             ],
             [
                 '{?keys,var,val}', [
                 'operator' => '?',
-                'values'   => [
+                'values' => [
                     ['value' => 'keys', 'modifier' => ''],
                     ['value' => 'var', 'modifier' => ''],
-                    ['value' => 'val', 'modifier' => '']
-                ]
+                    ['value' => 'val', 'modifier' => ''],
+                ],
             ],
             ],
             [
                 '{+x,hello,y}', [
                 'operator' => '+',
-                'values'   => [
+                'values' => [
                     ['value' => 'x', 'modifier' => ''],
                     ['value' => 'hello', 'modifier' => ''],
-                    ['value' => 'y', 'modifier' => '']
-                ]
-            ]
-            ]
+                    ['value' => 'y', 'modifier' => ''],
+                ],
+            ],
+            ],
         ];
     }
 
@@ -179,19 +180,19 @@ final class UriTemplateTest extends TestCase
     public function testAllowsNestedArrayExpansion(): void
     {
         $result = UriTemplate::expand('http://example.com{+path}{/segments}{?query,data*,foo*}', [
-            'path'     => '/foo/bar',
+            'path' => '/foo/bar',
             'segments' => ['one', 'two'],
-            'query'    => 'test',
-            'data'     => [
-                'more' => ['fun', 'ice cream']
+            'query' => 'test',
+            'data' => [
+                'more' => ['fun', 'ice cream'],
             ],
             'foo' => [
                 'baz' => [
-                    'bar'  => 'fizz',
-                    'test' => 'buzz'
+                    'bar' => 'fizz',
+                    'test' => 'buzz',
                 ],
-                'bam' => 'boo'
-            ]
+                'bam' => 'boo',
+            ],
         ]);
 
         self::assertSame('http://example.com/foo/bar/one,two?query=test&more%5B0%5D=fun&more%5B1%5D=ice%20cream&baz%5Bbar%5D=fizz&baz%5Btest%5D=buzz&bam=boo', $result);
