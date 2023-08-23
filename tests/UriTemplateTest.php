@@ -22,6 +22,7 @@ final class UriTemplateTest extends TestCase
             'x' => '1024',
             'y' => 768,
             'null' => null,
+            'zero' => 0,
             'list' => ['red', 'green', 'blue'],
             'keys' => [
                 'semi' => ';',
@@ -56,6 +57,7 @@ final class UriTemplateTest extends TestCase
                ['{/var}',              '/value'],
                ['{/var,x}/here',       '/value/1024/here'],
                ['{;x,y}',              ';x=1024;y=768'],
+               ['{;zero}',             ';zero=0'],
                ['{;x,y,empty}',        ';x=1024;y=768;empty'],
                ['{?x,y}',              '?x=1024&y=768'],
                ['{?x,y,empty}',        '?x=1024&y=768&empty='],
