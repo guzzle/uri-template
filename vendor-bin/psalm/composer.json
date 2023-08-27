@@ -1,8 +1,7 @@
 {
     "require": {
         "php": "^7.4 || ^8.0",
-        "phpstan/phpstan": "1.10.32",
-        "phpstan/phpstan-deprecation-rules": "1.1.4"
+        "psalm/phar": "5.15.0"
     },
     "config": {
         "preferred-install": "dist"
