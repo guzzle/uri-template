@@ -206,7 +206,7 @@ final class UriTemplate
             }
 
             if ($actuallyUseQuery) {
-                if (!$expanded && $joiner !== '&') {
+                if ($expanded === '' && $joiner !== '&') {
                     $expanded = $value['value'];
                 } else {
                     $expanded = \sprintf('%s=%s', $value['value'], $expanded);
