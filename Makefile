@@ -8,11 +8,6 @@ static-phpstan:
 	composer bin phpstan update
 	vendor/bin/phpstan analyze $(PHPSTAN_PARAMS)
 
-static-phpstan-update-baseline:
-	composer install
-	composer bin phpstan update
-	$(MAKE) static-phpstan PHPSTAN_PARAMS="--generate-baseline"
-
 static-psalm:
 	composer install
 	composer bin psalm update
