@@ -1,17 +1,17 @@
 test:
 	php vendor/bin/phpunit tests/ --colors=always
 
-static: static-phpstan static-codestyle-check
+static: static-phpstan static-psalm static-codestyle-check
 
 static-phpstan:
 	composer install
 	composer bin phpstan update
 	vendor/bin/phpstan analyze $(PHPSTAN_PARAMS)
 
-static-phpstan-update-baseline:
+static-psalm:
 	composer install
-	composer bin phpstan update
-	$(MAKE) static-phpstan PHPSTAN_PARAMS="--generate-baseline"
+	composer bin psalm update
+	vendor/bin/psalm.phar $(PSALM_PARAMS)
 
 static-codestyle-fix:
 	composer install

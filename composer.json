@@ -43,11 +43,11 @@
     ],
     "require": {
         "php" : "^7.2.5 || ^8.0",
-        "symfony/polyfill-php80": "^1.17"
+        "symfony/polyfill-php80": "^1.24"
     },
     "require-dev": {
-        "bamarni/composer-bin-plugin": "^1.8.1",
-        "phpunit/phpunit" : "^8.5.19 || ^9.5.8",
+        "bamarni/composer-bin-plugin": "^1.8.2",
+        "phpunit/phpunit" : "^8.5.36 || ^9.6.15",
         "uri-template/tests": "1.0.0"
     },
     "autoload": {
@@ -58,6 +58,12 @@
     "autoload-dev": {
         "psr-4": {
             "GuzzleHttp\\UriTemplate\\Tests\\": "tests"
+        }
+    },
+    "extra": {
+        "bamarni-bin": {
+            "bin-links": true,
+            "forward-command": false
         }
     },
     "config": {

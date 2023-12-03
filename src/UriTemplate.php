@@ -132,7 +132,6 @@ final class UriTemplate
                 continue;
             }
 
-            /** @var mixed */
             $variable = $variables[$value['value']];
             $actuallyUseQuery = $useQuery;
             $expanded = '';
