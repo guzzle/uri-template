@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class UriTemplateTest extends TestCase
 {
-    public function templateProvider(): array
+    public static function templateProvider(): array
     {
         $variables = [
             'var' => 'value',
@@ -126,7 +126,7 @@ final class UriTemplateTest extends TestCase
         self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
 
-    public function expressionProvider(): array
+    public static function expressionProvider(): array
     {
         return [
             [
@@ -167,12 +167,16 @@ final class UriTemplateTest extends TestCase
     {
         $template = new UriTemplate();
 
-        // Access the config object
         $class = new \ReflectionClass($template);
+
         $method = $class->getMethod('parseExpression');
-        $method->setAccessible(true);
+
+        if (PHP_VERSION_ID < 80100) {
+            $method->setAccessible(true);
+        }
 
         $exp = \substr($exp, 1, -1);
+
         self::assertSame($data, $method->invokeArgs($template, [$exp]));
     }
 
@@ -200,7 +204,7 @@ final class UriTemplateTest extends TestCase
         self::assertSame('http://example.com/foo/bar/one,two?query=test&more%5B0%5D=fun&more%5B1%5D=ice%20cream&baz%5Bbar%5D=fizz&baz%5Btest%5D=buzz&bam=boo', $result);
     }
 
-    public function specComplianceProvider(): \Generator
+    public static function specComplianceProvider(): \Generator
     {
         foreach (['spec-examples.json', 'spec-examples-by-section.json', 'extended-tests.json'] as $filename) {
             foreach (self::parseSpecExamples($filename) as $example) {
