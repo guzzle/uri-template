@@ -167,12 +167,16 @@ final class UriTemplateTest extends TestCase
     {
         $template = new UriTemplate();
 
-        // Access the config object
         $class = new \ReflectionClass($template);
+
         $method = $class->getMethod('parseExpression');
-        $method->setAccessible(true);
+
+        if (PHP_VERSION_ID < 80100) {
+            $method->setAccessible(true);
+        }
 
         $exp = \substr($exp, 1, -1);
+
         self::assertSame($data, $method->invokeArgs($template, [$exp]));
     }
 
