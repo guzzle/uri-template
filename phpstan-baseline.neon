@@ -17,15 +17,3 @@ parameters:
 			identifier: missingType.iterableValue
 			count: 1
 			path: src/UriTemplate.php
-
-		-
-			message: '#^Parameter \#1 \$matches of static method GuzzleHttp\\UriTemplate\\UriTemplate\:\:expandMatch\(\) expects array\<string\>, array given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/UriTemplate.php
-
-		-
-			message: '#^Parameter \#3 \.\.\.\$values of function sprintf expects bool\|float\|int\|string\|null, mixed given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/UriTemplate.php
