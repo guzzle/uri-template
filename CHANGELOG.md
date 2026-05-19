@@ -4,6 +4,11 @@ All notable changes to `uri-template` will be documented in this file.
 
 Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) principles.
 
+## v2.0.0 - Unreleased
+
+### Removed
+- Dropped support for PHP 7.2 and 7.3
+
 ## v1.0.5 - 2025-08-22
 
 ### Changed
