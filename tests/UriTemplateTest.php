@@ -123,7 +123,7 @@ final class UriTemplateTest extends TestCase
      */
     public function testExpandsUriTemplates(string $template, string $expansion, array $variables): void
     {
-        self::assertSame($expansion, self::expandWithoutPhpWarnings($template, $variables));
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
 
     public static function expressionProvider(): array
@@ -185,7 +185,7 @@ final class UriTemplateTest extends TestCase
      */
     public function testAllowsNestedArrayExpansion(): void
     {
-        $result = self::expandWithoutPhpWarnings('http://example.com{+path}{/segments}{?query,data*,foo*}', [
+        $result = UriTemplate::expand('http://example.com{+path}{/segments}{?query,data*,foo*}', [
             'path' => '/foo/bar',
             'segments' => ['one', 'two'],
             'query' => 'test',
@@ -218,7 +218,7 @@ final class UriTemplateTest extends TestCase
      */
     public function testSpecCompliance(string $template, array $expansions, array $variables): void
     {
-        self::assertContains(self::expandWithoutPhpWarnings($template, $variables), $expansions);
+        self::assertContains(UriTemplate::expand($template, $variables), $expansions);
     }
 
     private static function parseSpecExamples(string $filename): \Generator
@@ -231,40 +231,11 @@ final class UriTemplateTest extends TestCase
         }
     }
 
-    private static function expandWithoutPhpWarnings(string $template, array $variables): string
-    {
-        $result = null;
-
-        self::withoutPhpWarnings(static function () use ($template, $variables, &$result): void {
-            $result = UriTemplate::expand($template, $variables);
-        });
-
-        self::assertIsString($result);
-
-        return $result;
-    }
-
     private function assertInvalidTemplate(string $template, array $variables = []): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
         UriTemplate::expand($template, $variables);
-    }
-
-    /**
-     * @param callable():void $callback
-     */
-    private static function withoutPhpWarnings(callable $callback): void
-    {
-        \set_error_handler(static function (int $severity, string $message, string $file, int $line): void {
-            throw new \ErrorException($message, 0, $severity, $file, $line);
-        });
-
-        try {
-            $callback();
-        } finally {
-            \restore_error_handler();
-        }
     }
 
     public static function invalidSpecProvider(): \Generator
