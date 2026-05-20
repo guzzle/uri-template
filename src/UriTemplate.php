@@ -13,6 +13,7 @@ final class UriTemplate
 {
     private const RESERVED_OPERATORS = '=,!@|';
     private const SUPPORTED_OPERATORS = '+#./;?&';
+    private const VARNAME_PATTERN = '(?:[A-Za-z0-9_]|%[0-9A-Fa-f]{2})(?:\.?(?:[A-Za-z0-9_]|%[0-9A-Fa-f]{2}))*';
 
     /**
      * @var array<string, array{prefix:string, joiner:string, query:bool}> Hash for quick operator lookups
@@ -281,19 +282,35 @@ final class UriTemplate
             throw self::invalidExpression($expression, \sprintf('invalid variable specifier "%s"', $varspec));
         }
 
-        if ($colonPos = \strpos($varspec, ':')) {
+        $colonPos = \strpos($varspec, ':');
+        if ($colonPos !== false) {
+            $name = (string) \substr($varspec, 0, $colonPos);
+            self::assertValidVariableName($expression, $name, $varspec);
+
             return [
-                'value' => (string) \substr($varspec, 0, $colonPos),
+                'value' => $name,
                 'modifier' => ':',
                 'position' => (int) \substr($varspec, $colonPos + 1),
             ];
         }
 
         if (\substr($varspec, -1) === '*') {
-            return ['modifier' => '*', 'value' => (string) \substr($varspec, 0, -1)];
+            $name = (string) \substr($varspec, 0, -1);
+            self::assertValidVariableName($expression, $name, $varspec);
+
+            return ['modifier' => '*', 'value' => $name];
         }
 
+        self::assertValidVariableName($expression, $varspec, $varspec);
+
         return ['value' => $varspec, 'modifier' => ''];
+    }
+
+    private static function assertValidVariableName(string $expression, string $name, string $varspec): void
+    {
+        if (\preg_match('/\A'.self::VARNAME_PATTERN.'\z/', $name) !== 1) {
+            throw self::invalidExpression($expression, \sprintf('invalid variable specifier "%s"', $varspec));
+        }
     }
 
     private static function invalidExpression(string $expression, string $message): \InvalidArgumentException
