@@ -298,7 +298,6 @@ final class UriTemplateTest extends TestCase
             'map simple' => ['{keys:1}', ['keys' => ['semi' => ';']]],
             'reserved map' => ['{+keys:1}', ['keys' => ['semi' => ';']]],
             'matrix map' => ['{;keys:1}', ['keys' => ['semi' => ';']]],
-            'empty list' => ['{list:1}', ['list' => []]],
         ];
     }
 
@@ -314,6 +313,7 @@ final class UriTemplateTest extends TestCase
     {
         self::assertSame('', UriTemplate::expand('{missing:1}', []));
         self::assertSame('', UriTemplate::expand('{missing:1}', ['missing' => null]));
+        self::assertSame('', UriTemplate::expand('{list:1}', ['list' => []]));
     }
 
     public static function expressionProvider(): array

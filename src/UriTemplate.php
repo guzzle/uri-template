@@ -137,6 +137,10 @@ final class UriTemplate
 
             $variable = $variables[$value['value']];
 
+            if (\is_array($variable) && $variable === []) {
+                continue;
+            }
+
             if ($value['modifier'] === ':' && \is_array($variable)) {
                 throw self::invalidVariable(
                     $matches[1],
