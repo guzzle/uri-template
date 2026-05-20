@@ -32,7 +32,7 @@ final class UriTemplate
     /**
      * @param array<string,mixed> $variables Variables to use in the template expansion
      *
-     * @throws \InvalidArgumentException When the template syntax is invalid
+     * @throws \InvalidArgumentException When the template syntax or referenced variable shape is invalid
      * @throws \RuntimeException
      */
     public static function expand(string $template, array $variables): string
@@ -131,11 +131,24 @@ final class UriTemplate
         $allUndefined = true;
 
         foreach ($parsed['values'] as $value) {
-            if (!isset($variables[$value['value']])) {
+            if (self::isUndefinedVariable($variables, $value['value'])) {
                 continue;
             }
 
             $variable = $variables[$value['value']];
+
+            if (\is_array($variable) && $variable === []) {
+                continue;
+            }
+
+            if ($value['modifier'] === ':' && \is_array($variable)) {
+                throw self::invalidVariable(
+                    $matches[1],
+                    $value['value'],
+                    'prefix modifier is not applicable to composite values'
+                );
+            }
+
             $actuallyUseQuery = $useQuery;
             $expanded = '';
 
@@ -308,6 +321,24 @@ final class UriTemplate
     {
         return new \InvalidArgumentException(\sprintf(
             'Invalid URI template expression "{%s}": %s.',
+            $expression,
+            $message
+        ));
+    }
+
+    /**
+     * @param array<string,mixed> $variables
+     */
+    private static function isUndefinedVariable(array $variables, string $name): bool
+    {
+        return !\array_key_exists($name, $variables) || $variables[$name] === null;
+    }
+
+    private static function invalidVariable(string $expression, string $path, string $message): \InvalidArgumentException
+    {
+        return new \InvalidArgumentException(\sprintf(
+            'Invalid URI template variable "%s" in "{%s}": %s.',
+            $path,
             $expression,
             $message
         ));

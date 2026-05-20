@@ -291,6 +291,31 @@ final class UriTemplateTest extends TestCase
         $this->assertInvalidTemplate($template);
     }
 
+    public static function prefixOnCompositeProvider(): array
+    {
+        return [
+            'list simple' => ['{list:1}', ['list' => ['red', 'green']]],
+            'map simple' => ['{keys:1}', ['keys' => ['semi' => ';']]],
+            'reserved map' => ['{+keys:1}', ['keys' => ['semi' => ';']]],
+            'matrix map' => ['{;keys:1}', ['keys' => ['semi' => ';']]],
+        ];
+    }
+
+    /**
+     * @dataProvider prefixOnCompositeProvider
+     */
+    public function testRejectsPrefixModifiersOnCompositeValues(string $template, array $variables): void
+    {
+        $this->assertInvalidTemplate($template, $variables);
+    }
+
+    public function testIgnoresPrefixModifiersOnUndefinedVariables(): void
+    {
+        self::assertSame('', UriTemplate::expand('{missing:1}', []));
+        self::assertSame('', UriTemplate::expand('{missing:1}', ['missing' => null]));
+        self::assertSame('', UriTemplate::expand('{list:1}', ['list' => []]));
+    }
+
     public static function expressionProvider(): array
     {
         return [
