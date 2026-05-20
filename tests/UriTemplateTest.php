@@ -126,6 +126,26 @@ final class UriTemplateTest extends TestCase
         self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
 
+    public static function reservedExpansionPctTripletProvider(): array
+    {
+        return [
+            'scalar reserved' => ['{+id}', ['id' => 'admin%2F'], 'admin%2F'],
+            'scalar fragment' => ['{#id}', ['id' => 'admin%2F'], '#admin%2F'],
+            'scalar simple still encodes pct' => ['{id}', ['id' => 'admin%2F'], 'admin%252F'],
+            'invalid pct remains encoded' => ['{+id}', ['id' => '%foo'], '%25foo'],
+            'list reserved' => ['{+list}', ['list' => ['red%25', '%2Fgreen', 'blue ']], 'red%25,%2Fgreen,blue%20'],
+            'map fragment' => ['{#keys}', ['keys' => ['key1' => 'val1%2F', 'key2' => 'val2%2F']], '#key1,val1%2F,key2,val2%2F'],
+        ];
+    }
+
+    /**
+     * @dataProvider reservedExpansionPctTripletProvider
+     */
+    public function testReservedExpansionPreservesPctTriplets(string $template, array $variables, string $expansion): void
+    {
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
+    }
+
     public static function expressionProvider(): array
     {
         return [
