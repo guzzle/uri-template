@@ -225,6 +225,7 @@ final class UriTemplateTest extends TestCase
             'raw percent' => ['{bad%name}'],
             'short percent triplet' => ['{bad%2}'],
             'non-hex percent triplet' => ['{bad%ZZ}'],
+            'leading dot' => ['{?.var}'],
             'trailing dot' => ['{var.}'],
             'double dot' => ['{var..name}'],
             'raw unicode' => ["{Stra\xC3\x9Fe}"],
