@@ -247,6 +247,50 @@ final class UriTemplateTest extends TestCase
         $this->assertInvalidTemplate($template);
     }
 
+    public static function validModifierProvider(): array
+    {
+        return [
+            'prefix one' => ['{var:1}', ['var' => 'value'], 'v'],
+            'prefix max' => ['{var:9999}', ['var' => 'value'], 'value'],
+            'explode scalar' => ['{var*}', ['var' => 'value'], 'value'],
+            'explode list' => ['{/list*}', ['list' => ['red', 'green']], '/red/green'],
+        ];
+    }
+
+    /**
+     * @dataProvider validModifierProvider
+     */
+    public function testExpandsValidModifiers(string $template, array $variables, string $expansion): void
+    {
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
+    }
+
+    public static function invalidModifierProvider(): array
+    {
+        return [
+            'zero prefix' => ['{var:0}'],
+            'empty prefix' => ['{var:}'],
+            'leading zero prefix' => ['{var:01}'],
+            'negative prefix' => ['{var:-1}'],
+            'non numeric prefix' => ['{var:prefix}'],
+            'alphanumeric prefix' => ['{var:1a}'],
+            'too large prefix' => ['{var:10000}'],
+            'prefix and explode' => ['{hello:2*}'],
+            'matrix prefix and explode' => ['{;keys:1*}'],
+            'colon star' => ['{var:*}'],
+            'double explode' => ['{var**}'],
+            'question suffix' => ['{example:color?}'],
+        ];
+    }
+
+    /**
+     * @dataProvider invalidModifierProvider
+     */
+    public function testRejectsInvalidModifiers(string $template): void
+    {
+        $this->assertInvalidTemplate($template);
+    }
+
     public static function expressionProvider(): array
     {
         return [

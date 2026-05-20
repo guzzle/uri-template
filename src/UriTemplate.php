@@ -263,7 +263,7 @@ final class UriTemplate
                 throw self::invalidExpression($original, 'empty variable specifier');
             }
 
-            $values[] = self::parseVarSpecLenientForNow($original, $varspec);
+            $values[] = self::parseVarSpec($original, $varspec);
         }
 
         return ['operator' => $operator, 'values' => $values];
@@ -272,7 +272,7 @@ final class UriTemplate
     /**
      * @return array{value:string, modifier:(''|'*'|':'), position?:int}
      */
-    private static function parseVarSpecLenientForNow(string $expression, string $varspec): array
+    private static function parseVarSpec(string $expression, string $varspec): array
     {
         if ($varspec !== \trim($varspec)) {
             throw self::invalidExpression($expression, \sprintf('invalid whitespace in variable specifier "%s"', $varspec));
@@ -282,35 +282,26 @@ final class UriTemplate
             throw self::invalidExpression($expression, \sprintf('invalid variable specifier "%s"', $varspec));
         }
 
-        $colonPos = \strpos($varspec, ':');
-        if ($colonPos !== false) {
-            $name = (string) \substr($varspec, 0, $colonPos);
-            self::assertValidVariableName($expression, $name, $varspec);
+        $matches = [];
+        $pattern = '/\A('.self::VARNAME_PATTERN.')(?::([1-9][0-9]{0,3})|(\*))?\z/';
 
+        if (\preg_match($pattern, $varspec, $matches) !== 1) {
+            throw self::invalidExpression($expression, \sprintf('invalid variable specifier "%s"', $varspec));
+        }
+
+        if (isset($matches[2]) && $matches[2] !== '') {
             return [
-                'value' => $name,
+                'value' => $matches[1],
                 'modifier' => ':',
-                'position' => (int) \substr($varspec, $colonPos + 1),
+                'position' => (int) $matches[2],
             ];
         }
 
-        if (\substr($varspec, -1) === '*') {
-            $name = (string) \substr($varspec, 0, -1);
-            self::assertValidVariableName($expression, $name, $varspec);
-
-            return ['modifier' => '*', 'value' => $name];
+        if (isset($matches[3])) {
+            return ['modifier' => '*', 'value' => $matches[1]];
         }
 
-        self::assertValidVariableName($expression, $varspec, $varspec);
-
-        return ['value' => $varspec, 'modifier' => ''];
-    }
-
-    private static function assertValidVariableName(string $expression, string $name, string $varspec): void
-    {
-        if (\preg_match('/\A'.self::VARNAME_PATTERN.'\z/', $name) !== 1) {
-            throw self::invalidExpression($expression, \sprintf('invalid variable specifier "%s"', $varspec));
-        }
+        return ['value' => $matches[1], 'modifier' => ''];
     }
 
     private static function invalidExpression(string $expression, string $message): \InvalidArgumentException
