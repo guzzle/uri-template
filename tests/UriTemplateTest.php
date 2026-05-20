@@ -190,6 +190,63 @@ final class UriTemplateTest extends TestCase
         $this->assertInvalidTemplate($template, ['hello' => 'Hello World!', 'path' => '/foo/bar', 'var' => 'value', 'x' => '1024', 'y' => '768']);
     }
 
+    public static function validVariableNameProvider(): array
+    {
+        return [
+            'letters' => ['{var}', ['var' => 'value'], 'value'],
+            'digits' => ['{42}', ['42' => 'answer'], 'answer'],
+            'underscore' => ['{first_name}', ['first_name' => 'John'], 'John'],
+            'dot separator' => ['{last.name}', ['last.name' => 'Doe'], 'Doe'],
+            'pct encoded space in name' => ['{/Some%20Thing}', ['Some%20Thing' => 'foo'], '/foo'],
+            'pct encoded unicode in name' => ['{?Stra%C3%9Fe}', ['Stra%C3%9Fe' => 'Gruner Weg'], '?Stra%C3%9Fe=Gruner%20Weg'],
+        ];
+    }
+
+    /**
+     * @dataProvider validVariableNameProvider
+     */
+    public function testExpandsValidVariableNames(string $template, array $variables, string $expansion): void
+    {
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
+    }
+
+    public static function invalidVariableNameProvider(): array
+    {
+        return [
+            'space' => ['{with space}'],
+            'leading space' => ['{ leading_space}'],
+            'trailing space' => ['{trailing_space }'],
+            'hyphen' => ['/{default-graph-uri}'],
+            'tilde' => ['/people/{~thing}'],
+            'dollar' => ['{$var}'],
+            'query delimiter in name' => ['/search{?x=1&admin}'],
+            'matrix delimiter in name' => ['/users{;role;admin}'],
+            'slash in name' => ['{a/b}'],
+            'raw percent' => ['{bad%name}'],
+            'short percent triplet' => ['{bad%2}'],
+            'non-hex percent triplet' => ['{bad%ZZ}'],
+            'leading dot' => ['{?.var}'],
+            'trailing dot' => ['{var.}'],
+            'double dot' => ['{var..name}'],
+            'raw unicode' => ["{Stra\xC3\x9Fe}"],
+            'default syntax' => ['{?empty=default,var}'],
+            'join extension syntax' => ['?{-join|&|var,list}'],
+            'pipe extension syntax' => ['x{?empty|foo=none}'],
+            'extension after expression' => ['{var}{-prefix|/-/|var}'],
+            'operator-like suffix' => ['/h{#hello+}'],
+            'operator-like suffix after fragment literal' => ['/h#{hello+}'],
+            'star-prefixed name' => ['{*keys?}'],
+        ];
+    }
+
+    /**
+     * @dataProvider invalidVariableNameProvider
+     */
+    public function testRejectsInvalidVariableNames(string $template): void
+    {
+        $this->assertInvalidTemplate($template);
+    }
+
     public static function expressionProvider(): array
     {
         return [
