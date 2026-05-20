@@ -28,10 +28,13 @@ final class UriTemplate
     /**
      * @param array<string,mixed> $variables Variables to use in the template expansion
      *
+     * @throws \InvalidArgumentException When the template syntax is invalid
      * @throws \RuntimeException
      */
     public static function expand(string $template, array $variables): string
     {
+        self::validateTemplateStructure($template);
+
         if (false === \strpos($template, '{')) {
             return $template;
         }
@@ -60,6 +63,49 @@ final class UriTemplate
         return static function (array $matches) use ($variables): string {
             return self::expandMatch($matches, $variables);
         };
+    }
+
+    private static function validateTemplateStructure(string $template): void
+    {
+        $length = \strlen($template);
+
+        for ($offset = 0; $offset < $length; ++$offset) {
+            $char = $template[$offset];
+
+            if ($char === '{') {
+                $end = \strpos($template, '}', $offset + 1);
+
+                if ($end === false) {
+                    throw self::invalidTemplate($offset, 'unmatched "{"');
+                }
+
+                if ($end === $offset + 1) {
+                    throw self::invalidTemplate($offset, 'empty expression');
+                }
+
+                $expression = \substr($template, $offset + 1, $end - $offset - 1);
+
+                if (\strpos($expression, '{') !== false) {
+                    throw self::invalidTemplate($offset, 'nested expressions are not allowed');
+                }
+
+                $offset = $end;
+                continue;
+            }
+
+            if ($char === '}') {
+                throw self::invalidTemplate($offset, 'unmatched "}"');
+            }
+        }
+    }
+
+    private static function invalidTemplate(int $offset, string $message): \InvalidArgumentException
+    {
+        return new \InvalidArgumentException(\sprintf(
+            'Invalid URI template at offset %d: %s.',
+            $offset,
+            $message
+        ));
     }
 
     /**

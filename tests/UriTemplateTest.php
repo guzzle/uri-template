@@ -146,6 +146,25 @@ final class UriTemplateTest extends TestCase
         self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
 
+    public static function malformedDelimiterProvider(): array
+    {
+        return [
+            'unmatched open brace' => ['{/id*'],
+            'unmatched close brace' => ['/id*}'],
+            'empty expression' => ['{}'],
+            'nested expression' => ['{{var}}'],
+            'nested expression after operator' => ['{?{var}}'],
+        ];
+    }
+
+    /**
+     * @dataProvider malformedDelimiterProvider
+     */
+    public function testRejectsMalformedTemplateDelimiters(string $template): void
+    {
+        $this->assertInvalidTemplate($template, ['var' => 'value', 'id' => 'thing']);
+    }
+
     public static function expressionProvider(): array
     {
         return [
