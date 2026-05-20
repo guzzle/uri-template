@@ -269,9 +269,11 @@ final class UriTemplateTest extends TestCase
     {
         return [
             'zero prefix' => ['{var:0}'],
+            'empty prefix' => ['{var:}'],
             'leading zero prefix' => ['{var:01}'],
             'negative prefix' => ['{var:-1}'],
             'non numeric prefix' => ['{var:prefix}'],
+            'alphanumeric prefix' => ['{var:1a}'],
             'too large prefix' => ['{var:10000}'],
             'prefix and explode' => ['{hello:2*}'],
             'matrix prefix and explode' => ['{;keys:1*}'],
