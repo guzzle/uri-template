@@ -14,6 +14,7 @@ final class UriTemplate
     private const RESERVED_OPERATORS = '=,!@|';
     private const SUPPORTED_OPERATORS = '+#./;?&';
     private const VARNAME_PATTERN = '(?:[A-Za-z0-9_]|%[0-9A-Fa-f]{2})(?:\.?(?:[A-Za-z0-9_]|%[0-9A-Fa-f]{2}))*';
+    private const MAX_VARIABLE_DEPTH = 64;
 
     /**
      * @var array<string, array{prefix:string, joiner:string, query:bool}> Hash for quick operator lookups
@@ -141,13 +142,7 @@ final class UriTemplate
                 continue;
             }
 
-            if ($value['modifier'] === ':' && \is_array($variable)) {
-                throw self::invalidVariable(
-                    $matches[1],
-                    $value['value'],
-                    'prefix modifier is not applicable to composite values'
-                );
-            }
+            self::assertVariableShape($value, $variable, $matches[1], $parsed['operator']);
 
             $actuallyUseQuery = $useQuery;
             $expanded = '';
@@ -342,6 +337,167 @@ final class UriTemplate
             $expression,
             $message
         ));
+    }
+
+    /**
+     * @param array{value:string, modifier:(''|'*'|':'), position?:int} $varspec
+     * @param mixed                                                     $variable
+     */
+    private static function assertVariableShape(array $varspec, $variable, string $expression, string $operator): void
+    {
+        if (self::isScalarLike($variable)) {
+            return;
+        }
+
+        if (!\is_array($variable)) {
+            throw self::invalidVariable(
+                $expression,
+                $varspec['value'],
+                \sprintf(
+                    'expected scalar, stringable object, list, or associative array; got %s',
+                    self::describeType($variable)
+                )
+            );
+        }
+
+        if ($varspec['modifier'] === ':') {
+            throw self::invalidVariable(
+                $expression,
+                $varspec['value'],
+                'prefix modifier is not applicable to composite values'
+            );
+        }
+
+        $isAssoc = self::isAssoc($variable);
+
+        if (!$isAssoc) {
+            self::assertListShape($varspec['value'], $variable, $expression);
+
+            return;
+        }
+
+        $allowNestedArrays = $varspec['modifier'] === '*' && ($operator === '?' || $operator === '&');
+
+        self::assertMapShape($varspec['value'], $variable, $expression, $allowNestedArrays, 0);
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private static function isScalarLike($value): bool
+    {
+        return \is_scalar($value) || (\is_object($value) && \method_exists($value, '__toString'));
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private static function describeType($value): string
+    {
+        if (\is_object($value)) {
+            return 'object('.\get_class($value).')';
+        }
+
+        if (\is_resource($value)) {
+            return 'resource('.\get_resource_type($value).')';
+        }
+
+        return \gettype($value);
+    }
+
+    /**
+     * @param array<array-key,mixed> $value
+     */
+    private static function assertListShape(string $path, array $value, string $expression): void
+    {
+        foreach ($value as $index => $member) {
+            $memberPath = \sprintf('%s[%d]', $path, $index);
+
+            if ($member === null) {
+                throw self::invalidVariable($expression, $memberPath, 'nested null values are not supported');
+            }
+
+            if (self::isScalarLike($member)) {
+                continue;
+            }
+
+            throw self::invalidVariable(
+                $expression,
+                $memberPath,
+                \sprintf('expected scalar or stringable object; got %s', self::describeType($member))
+            );
+        }
+    }
+
+    /**
+     * @param array<array-key,mixed> $value
+     */
+    private static function assertMapShape(
+        string $path,
+        array $value,
+        string $expression,
+        bool $allowNestedArrays,
+        int $depth
+    ): void {
+        if ($depth > self::MAX_VARIABLE_DEPTH) {
+            throw self::invalidVariable($expression, $path, 'maximum variable nesting depth exceeded');
+        }
+
+        foreach ($value as $key => $member) {
+            $memberPath = \sprintf('%s[%s]', $path, (string) $key);
+
+            if ($member === null) {
+                throw self::invalidVariable($expression, $memberPath, 'nested null values are not supported');
+            }
+
+            if (self::isScalarLike($member)) {
+                continue;
+            }
+
+            if (\is_array($member) && $allowNestedArrays) {
+                self::assertNestedQueryShape($memberPath, $member, $expression, $depth + 1);
+                continue;
+            }
+
+            throw self::invalidVariable(
+                $expression,
+                $memberPath,
+                \sprintf('expected scalar%s; got %s', $allowNestedArrays ? ', stringable object, or nested array' : ' or stringable object', self::describeType($member))
+            );
+        }
+    }
+
+    /**
+     * @param array<array-key,mixed> $value
+     */
+    private static function assertNestedQueryShape(string $path, array $value, string $expression, int $depth): void
+    {
+        if ($depth > self::MAX_VARIABLE_DEPTH) {
+            throw self::invalidVariable($expression, $path, 'maximum variable nesting depth exceeded');
+        }
+
+        foreach ($value as $key => $member) {
+            $memberPath = \sprintf('%s[%s]', $path, (string) $key);
+
+            if ($member === null) {
+                throw self::invalidVariable($expression, $memberPath, 'nested null values are not supported');
+            }
+
+            if (\is_scalar($member)) {
+                continue;
+            }
+
+            if (\is_array($member)) {
+                self::assertNestedQueryShape($memberPath, $member, $expression, $depth + 1);
+                continue;
+            }
+
+            throw self::invalidVariable(
+                $expression,
+                $memberPath,
+                \sprintf('expected scalar or nested array; got %s', self::describeType($member))
+            );
+        }
     }
 
     /**
