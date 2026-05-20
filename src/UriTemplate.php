@@ -236,6 +236,10 @@ final class UriTemplate
      */
     private static function parseExpression(string $expression): array
     {
+        if ($expression === '') {
+            throw self::invalidExpression($expression, 'empty expression');
+        }
+
         $original = $expression;
         $operator = '';
         $first = $expression[0];

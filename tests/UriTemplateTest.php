@@ -172,6 +172,7 @@ final class UriTemplateTest extends TestCase
             'unsupported bang operator' => ['{!hello}'],
             'unsupported at operator' => ['{@hello}'],
             'unsupported pipe operator' => ['{|var*}'],
+            'operator-like path varspec' => ['{/?id}'],
             'double query operator' => ['{??hello}'],
             'operator without varlist' => ['{?}'],
             'empty varspec before comma' => ['{,var}'],
