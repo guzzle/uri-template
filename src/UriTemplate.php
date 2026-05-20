@@ -11,6 +11,9 @@ namespace GuzzleHttp\UriTemplate;
  */
 final class UriTemplate
 {
+    private const RESERVED_OPERATORS = '=,!@|';
+    private const SUPPORTED_OPERATORS = '+#./;?&';
+
     /**
      * @var array<string, array{prefix:string, joiner:string, query:bool}> Hash for quick operator lookups
      */
@@ -233,35 +236,69 @@ final class UriTemplate
      */
     private static function parseExpression(string $expression): array
     {
-        $result = [];
+        $original = $expression;
+        $operator = '';
+        $first = $expression[0];
 
-        if (isset(self::$operatorHash[$expression[0]])) {
-            $result['operator'] = $expression[0];
+        if (isset(self::$operatorHash[$first])) {
+            $operator = $first;
             /** @var string */
             $expression = \substr($expression, 1);
-        } else {
-            $result['operator'] = '';
+        } elseif (\strpos(self::RESERVED_OPERATORS, $first) !== false) {
+            throw self::invalidExpression($original, \sprintf('unsupported operator "%s"', $first));
         }
 
-        $result['values'] = [];
-        foreach (\explode(',', $expression) as $value) {
-            $value = \trim($value);
-            $varspec = [];
-            if ($colonPos = \strpos($value, ':')) {
-                $varspec['value'] = (string) \substr($value, 0, $colonPos);
-                $varspec['modifier'] = ':';
-                $varspec['position'] = (int) \substr($value, $colonPos + 1);
-            } elseif (\substr($value, -1) === '*') {
-                $varspec['modifier'] = '*';
-                $varspec['value'] = (string) \substr($value, 0, -1);
-            } else {
-                $varspec['value'] = $value;
-                $varspec['modifier'] = '';
+        if ($expression === '') {
+            throw self::invalidExpression($original, 'missing variable list');
+        }
+
+        $values = [];
+        foreach (\explode(',', $expression) as $varspec) {
+            if ($varspec === '') {
+                throw self::invalidExpression($original, 'empty variable specifier');
             }
-            $result['values'][] = $varspec;
+
+            $values[] = self::parseVarSpecLenientForNow($original, $varspec);
         }
 
-        return $result;
+        return ['operator' => $operator, 'values' => $values];
+    }
+
+    /**
+     * @return array{value:string, modifier:(''|'*'|':'), position?:int}
+     */
+    private static function parseVarSpecLenientForNow(string $expression, string $varspec): array
+    {
+        if ($varspec !== \trim($varspec)) {
+            throw self::invalidExpression($expression, \sprintf('invalid whitespace in variable specifier "%s"', $varspec));
+        }
+
+        if (\strpos(self::SUPPORTED_OPERATORS.self::RESERVED_OPERATORS, $varspec[0]) !== false) {
+            throw self::invalidExpression($expression, \sprintf('invalid variable specifier "%s"', $varspec));
+        }
+
+        if ($colonPos = \strpos($varspec, ':')) {
+            return [
+                'value' => (string) \substr($varspec, 0, $colonPos),
+                'modifier' => ':',
+                'position' => (int) \substr($varspec, $colonPos + 1),
+            ];
+        }
+
+        if (\substr($varspec, -1) === '*') {
+            return ['modifier' => '*', 'value' => (string) \substr($varspec, 0, -1)];
+        }
+
+        return ['value' => $varspec, 'modifier' => ''];
+    }
+
+    private static function invalidExpression(string $expression, string $message): \InvalidArgumentException
+    {
+        return new \InvalidArgumentException(\sprintf(
+            'Invalid URI template expression "{%s}": %s.',
+            $expression,
+            $message
+        ));
     }
 
     /**
