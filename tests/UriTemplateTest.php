@@ -123,7 +123,7 @@ final class UriTemplateTest extends TestCase
      */
     public function testExpandsUriTemplates(string $template, string $expansion, array $variables): void
     {
-        self::assertSame($expansion, UriTemplate::expand($template, $variables));
+        self::assertSame($expansion, self::expandWithoutPhpWarnings($template, $variables));
     }
 
     public static function expressionProvider(): array
@@ -185,7 +185,7 @@ final class UriTemplateTest extends TestCase
      */
     public function testAllowsNestedArrayExpansion(): void
     {
-        $result = UriTemplate::expand('http://example.com{+path}{/segments}{?query,data*,foo*}', [
+        $result = self::expandWithoutPhpWarnings('http://example.com{+path}{/segments}{?query,data*,foo*}', [
             'path' => '/foo/bar',
             'segments' => ['one', 'two'],
             'query' => 'test',
@@ -218,7 +218,7 @@ final class UriTemplateTest extends TestCase
      */
     public function testSpecCompliance(string $template, array $expansions, array $variables): void
     {
-        self::assertContains(UriTemplate::expand($template, $variables), $expansions);
+        self::assertContains(self::expandWithoutPhpWarnings($template, $variables), $expansions);
     }
 
     private static function parseSpecExamples(string $filename): \Generator
@@ -229,6 +229,19 @@ final class UriTemplateTest extends TestCase
                 yield [$case[0], (array) $case[1], $variables];
             }
         }
+    }
+
+    private static function expandWithoutPhpWarnings(string $template, array $variables): string
+    {
+        $result = null;
+
+        self::withoutPhpWarnings(static function () use ($template, $variables, &$result): void {
+            $result = UriTemplate::expand($template, $variables);
+        });
+
+        self::assertIsString($result);
+
+        return $result;
     }
 
     private function assertInvalidTemplate(string $template, array $variables = []): void
