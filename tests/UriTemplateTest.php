@@ -165,6 +165,31 @@ final class UriTemplateTest extends TestCase
         $this->assertInvalidTemplate($template, ['var' => 'value', 'id' => 'thing']);
     }
 
+    public static function invalidOperatorOrVarlistProvider(): array
+    {
+        return [
+            'unsupported equals operator' => ['{=path}'],
+            'unsupported bang operator' => ['{!hello}'],
+            'unsupported at operator' => ['{@hello}'],
+            'unsupported pipe operator' => ['{|var*}'],
+            'operator-like path varspec' => ['{/?id}'],
+            'double query operator' => ['{??hello}'],
+            'operator without varlist' => ['{?}'],
+            'empty varspec before comma' => ['{,var}'],
+            'empty varspec after comma' => ['{var,}'],
+            'empty varspec between commas' => ['{var,,hello}'],
+            'whitespace after comma' => ['/resolution{?x, y}'],
+        ];
+    }
+
+    /**
+     * @dataProvider invalidOperatorOrVarlistProvider
+     */
+    public function testRejectsInvalidOperatorsAndVarlists(string $template): void
+    {
+        $this->assertInvalidTemplate($template, ['hello' => 'Hello World!', 'path' => '/foo/bar', 'var' => 'value', 'x' => '1024', 'y' => '768']);
+    }
+
     public static function expressionProvider(): array
     {
         return [
