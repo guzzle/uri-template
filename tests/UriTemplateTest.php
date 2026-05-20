@@ -223,13 +223,61 @@ final class UriTemplateTest extends TestCase
 
     private static function parseSpecExamples(string $filename): \Generator
     {
-        $examples = \file_get_contents(\sprintf('%s/../vendor/uri-template/tests/%s', __DIR__, $filename));
-
-        foreach (\json_decode($examples, true) as $example) {
+        foreach (self::loadSpecFixture($filename) as $example) {
             $variables = $example['variables'];
             foreach ($example['testcases'] as $case) {
                 yield [$case[0], (array) $case[1], $variables];
             }
         }
+    }
+
+    private function assertInvalidTemplate(string $template, array $variables = []): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        UriTemplate::expand($template, $variables);
+    }
+
+    /**
+     * @param callable():void $callback
+     */
+    private static function withoutPhpWarnings(callable $callback): void
+    {
+        \set_error_handler(static function (int $severity, string $message, string $file, int $line): void {
+            throw new \ErrorException($message, 0, $severity, $file, $line);
+        });
+
+        try {
+            $callback();
+        } finally {
+            \restore_error_handler();
+        }
+    }
+
+    public static function invalidSpecProvider(): \Generator
+    {
+        foreach (self::loadSpecFixture('negative-tests.json') as $groupName => $group) {
+            foreach ($group['testcases'] as $index => $case) {
+                if ($case[1] !== false) {
+                    continue;
+                }
+
+                yield \sprintf('%s #%d %s', $groupName, $index, $case[0]) => [
+                    $case[0],
+                    $group['variables'],
+                ];
+            }
+        }
+    }
+
+    private static function loadSpecFixture(string $filename): array
+    {
+        $contents = \file_get_contents(\sprintf('%s/../vendor/uri-template/tests/%s', __DIR__, $filename));
+        self::assertIsString($contents);
+
+        $decoded = \json_decode($contents, true);
+        self::assertIsArray($decoded);
+
+        return $decoded;
     }
 }
