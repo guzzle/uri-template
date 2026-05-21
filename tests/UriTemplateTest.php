@@ -163,6 +163,10 @@ final class UriTemplateTest extends TestCase
             'nul' => ["foo\x00bar"],
             'crlf' => ["foo\r\nbar"],
             'del' => ["foo\x7Fbar"],
+            'c1 control' => ["foo\xC2\x80bar"],
+            'zero-width space' => ["foo\xE2\x80\x8Bbar"],
+            'right-to-left override' => ["foo\xE2\x80\xAEbar"],
+            'byte order mark' => ["foo\xEF\xBB\xBFbar"],
             'invalid utf-8' => ["foo\xC3".'bar'],
             'invalid after expression' => ['/{id}/bad path'],
         ];

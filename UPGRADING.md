@@ -26,10 +26,10 @@ specifiers, and prefix modifiers applied to list or map values.
 #### Literal Text
 
 Literal text outside expressions is now validated for unsafe characters. Spaces,
-raw or malformed `%` sequences, double quotes, controls, `<`, `>`, backslash,
-caret, backtick, and pipe now throw `InvalidArgumentException`. Valid non-ASCII
-literal text is preserved, but must be valid UTF-8. Templates without expressions
-are also validated.
+raw or malformed `%` sequences, double quotes, ASCII controls, Unicode control
+and format characters, `<`, `>`, backslash, caret, backtick, and pipe now throw
+`InvalidArgumentException`. Valid printable non-ASCII literal text is preserved,
+but must be valid UTF-8. Templates without expressions are also validated.
 
 Before:
 

@@ -577,6 +577,10 @@ final class UriTemplate
 
                 throw self::invalidTemplate($baseOffset + $offset, $token === '%' ? 'invalid percent-encoded triplet' : 'invalid literal character');
             }
+
+            if (self::isUnsafeUnicodeLiteral($token)) {
+                throw self::invalidTemplate($baseOffset + $offset, 'invalid literal character');
+            }
         }
 
         if ($position !== \strlen($literal)) {
@@ -593,6 +597,11 @@ final class UriTemplate
         }
 
         return \strpos('"%<>\\^`|', $char) === false;
+    }
+
+    private static function isUnsafeUnicodeLiteral(string $char): bool
+    {
+        return \preg_match('/\A[\p{Cc}\p{Cf}]\z/u', $char) === 1;
     }
 
     private static function encodeValue(string $value, bool $allowReserved): string
