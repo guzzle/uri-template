@@ -23,6 +23,32 @@ Invalid template syntax includes malformed braces, unsupported operators,
 invalid variable names, invalid modifiers, repeated operator-like variable
 specifiers, and prefix modifiers applied to list or map values.
 
+#### Common Migration Fixes
+
+Use pct-encoded literal text in templates:
+
+```php
+UriTemplate::expand('/search%20terms/{id}', ['id' => 1]);
+```
+
+Use valid RFC 6570 variable names:
+
+```php
+UriTemplate::expand('/search{?default_graph_uri}', [
+    'default_graph_uri' => 'https://example.com/',
+]);
+```
+
+Apply prefix modifiers only to scalar or stringable values:
+
+```php
+UriTemplate::expand('{name:3}', ['name' => 'value']);
+```
+
+Validate variable maps before expansion if they contain user-provided values.
+Unsupported resources, closures, non-stringable objects, nested null values, and
+unsupported nested arrays now throw `InvalidArgumentException`.
+
 #### Literal Text
 
 Literal text outside expressions is now validated and encoded using RFC 6570
