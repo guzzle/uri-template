@@ -614,6 +614,99 @@ final class UriTemplateTest extends TestCase
         self::assertSame($data, $method->invokeArgs($template, [$exp]));
     }
 
+    public static function nestedQueryKeyEncodingProvider(): array
+    {
+        return [
+            'space in nested top-level key' => [
+                '{?x*}',
+                ['x' => ['a b' => ['c' => 'd']]],
+                '?a%20b%5Bc%5D=d',
+            ],
+            'reserved slash in nested top-level key' => [
+                '{?x*}',
+                ['x' => ['a/b' => ['c' => 'd']]],
+                '?a%2Fb%5Bc%5D=d',
+            ],
+            'percent triplet text in nested top-level key' => [
+                '{?x*}',
+                ['x' => ['a%2Fb' => ['c' => 'd']]],
+                '?a%252Fb%5Bc%5D=d',
+            ],
+            'space in nested child key and value' => [
+                '{?x*}',
+                ['x' => ['a b' => ['c d' => 'e f']]],
+                '?a%20b%5Bc%20d%5D=e%20f',
+            ],
+            'continuation operator nested key' => [
+                '{&x*}',
+                ['x' => ['a b' => ['c d' => 'e f']]],
+                '&a%20b%5Bc%20d%5D=e%20f',
+            ],
+            'scalar map key remains encoded' => [
+                '{?x*}',
+                ['x' => ['a b' => 'c d']],
+                '?a%20b=c%20d',
+            ],
+        ];
+    }
+
+    /**
+     * @dataProvider nestedQueryKeyEncodingProvider
+     */
+    public function testNestedQueryKeysAreEncodedOnce(string $template, array $variables, string $expansion): void
+    {
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
+    }
+
+    public static function emptyNestedQueryArrayProvider(): array
+    {
+        return [
+            'empty nested array before scalar sibling' => [
+                '{?x*}',
+                ['x' => ['empty' => [], 'b' => 'c']],
+                '?b=c',
+            ],
+            'empty nested array after scalar sibling' => [
+                '{?x*}',
+                ['x' => ['b' => 'c', 'empty' => []]],
+                '?b=c',
+            ],
+            'continuation operator empty nested array' => [
+                '{&x*}',
+                ['x' => ['empty' => [], 'b' => 'c']],
+                '&b=c',
+            ],
+            'all nested arrays empty' => [
+                '{?x*}',
+                ['x' => ['a' => [], 'b' => []]],
+                '',
+            ],
+            'empty nested array before next variable' => [
+                '{?x*,y}',
+                ['x' => ['empty' => []], 'y' => 'c'],
+                '?y=c',
+            ],
+            'empty nested array after non-empty nested array' => [
+                '{?x*}',
+                ['x' => ['a' => ['b' => 'c'], 'empty' => []]],
+                '?a%5Bb%5D=c',
+            ],
+            'empty scalar value is preserved' => [
+                '{?x*}',
+                ['x' => ['empty' => '', 'nested' => []]],
+                '?empty=',
+            ],
+        ];
+    }
+
+    /**
+     * @dataProvider emptyNestedQueryArrayProvider
+     */
+    public function testSkipsEmptyNestedQueryArrays(string $template, array $variables, string $expansion): void
+    {
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
+    }
+
     /**
      * @ticket https://github.com/guzzle/guzzle/issues/90
      */
