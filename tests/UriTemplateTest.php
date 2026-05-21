@@ -32,7 +32,7 @@ final class UriTemplateTest extends TestCase
             'empty_keys' => [],
         ];
 
-        return \array_map(static function ($t) use ($variables) {
+        return \array_map(static function (array $t) use ($variables): array {
             $t[] = $variables;
 
             return $t;
@@ -588,8 +588,7 @@ final class UriTemplateTest extends TestCase
 
 final class StringableValue
 {
-    /** @var string */
-    private $value;
+    private string $value;
 
     public function __construct(string $value)
     {
