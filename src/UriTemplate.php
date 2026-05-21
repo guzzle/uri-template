@@ -38,7 +38,7 @@ final class UriTemplate
      */
     public static function expand(string $template, array $variables): string
     {
-        self::validateTemplateStructure($template);
+        self::validateTemplate($template);
 
         if (false === \strpos($template, '{')) {
             return $template;
@@ -70,14 +70,17 @@ final class UriTemplate
         };
     }
 
-    private static function validateTemplateStructure(string $template): void
+    private static function validateTemplate(string $template): void
     {
         $length = \strlen($template);
+        $literalStart = 0;
 
         for ($offset = 0; $offset < $length; ++$offset) {
             $char = $template[$offset];
 
             if ($char === '{') {
+                self::validateLiteralSegment(\substr($template, $literalStart, $offset - $literalStart), $literalStart);
+
                 $end = \strpos($template, '}', $offset + 1);
 
                 if ($end === false) {
@@ -95,6 +98,8 @@ final class UriTemplate
                 }
 
                 $offset = $end;
+                $literalStart = $end + 1;
+
                 continue;
             }
 
@@ -102,6 +107,8 @@ final class UriTemplate
                 throw self::invalidTemplate($offset, 'unmatched "}"');
             }
         }
+
+        self::validateLiteralSegment(\substr($template, $literalStart), $literalStart);
     }
 
     private static function invalidTemplate(int $offset, string $message): \InvalidArgumentException
@@ -528,6 +535,64 @@ final class UriTemplate
         }
 
         return \implode('', \array_slice($matches[0], 0, $length));
+    }
+
+    private static function validateLiteralSegment(string $literal, int $baseOffset): void
+    {
+        if ($literal === '') {
+            return;
+        }
+
+        $matches = [];
+        $result = \preg_match_all('/%[0-9A-Fa-f]{2}|./us', $literal, $matches, \PREG_OFFSET_CAPTURE);
+
+        if ($result === false || \preg_last_error() !== \PREG_NO_ERROR) {
+            throw self::invalidTemplate($baseOffset, 'literal text must be valid UTF-8');
+        }
+
+        $position = 0;
+
+        foreach ($matches[0] as $match) {
+            $token = $match[0];
+            $offset = $match[1];
+
+            if ($offset < 0) {
+                throw self::invalidTemplate($baseOffset + $position, 'invalid literal character');
+            }
+
+            if ($offset !== $position) {
+                throw self::invalidTemplate($baseOffset + $position, 'invalid literal character');
+            }
+
+            $position = $offset + \strlen($token);
+
+            if (\preg_match('/\A%[0-9A-Fa-f]{2}\z/', $token) === 1) {
+                continue;
+            }
+
+            if (\strlen($token) === 1) {
+                if (self::isAllowedLiteralByte($token)) {
+                    continue;
+                }
+
+                throw self::invalidTemplate($baseOffset + $offset, $token === '%' ? 'invalid percent-encoded triplet' : 'invalid literal character');
+            }
+        }
+
+        if ($position !== \strlen($literal)) {
+            throw self::invalidTemplate($baseOffset + $position, 'invalid literal character');
+        }
+    }
+
+    private static function isAllowedLiteralByte(string $char): bool
+    {
+        $ord = \ord($char);
+
+        if ($ord < 0x21 || $ord === 0x7F) {
+            return false;
+        }
+
+        return \strpos('"%<>\\^`|', $char) === false;
     }
 
     private static function encodeValue(string $value, bool $allowReserved): string
