@@ -273,6 +273,7 @@ final class UriTemplateTest extends TestCase
             'reserved unicode and slash characters' => ['{+var:2}', ['var' => "\xC3\xA9/clair"], '%C3%A9/'],
             'query unicode character' => ['{?var:1}', ['var' => "\xC3\xA9clair"], '?var=%C3%A9'],
             'pct triplet counts as one character' => ['{var:1}', ['var' => '%2Fabc'], '%252F'],
+            'reserved pct triplet counts as one character' => ['{+var:1}', ['var' => '%2Fabc'], '%2F'],
         ];
     }
 
