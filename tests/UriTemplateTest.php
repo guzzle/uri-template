@@ -245,6 +245,55 @@ final class UriTemplateTest extends TestCase
         self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
 
+    public static function emptyNestedQueryArrayProvider(): array
+    {
+        return [
+            'empty nested array before scalar sibling' => [
+                '{?x*}',
+                ['x' => ['empty' => [], 'b' => 'c']],
+                '?b=c',
+            ],
+            'empty nested array after scalar sibling' => [
+                '{?x*}',
+                ['x' => ['b' => 'c', 'empty' => []]],
+                '?b=c',
+            ],
+            'continuation operator empty nested array' => [
+                '{&x*}',
+                ['x' => ['empty' => [], 'b' => 'c']],
+                '&b=c',
+            ],
+            'all nested arrays empty' => [
+                '{?x*}',
+                ['x' => ['a' => [], 'b' => []]],
+                '',
+            ],
+            'empty nested array before next variable' => [
+                '{?x*,y}',
+                ['x' => ['empty' => []], 'y' => 'c'],
+                '?y=c',
+            ],
+            'empty nested array after non-empty nested array' => [
+                '{?x*}',
+                ['x' => ['a' => ['b' => 'c'], 'empty' => []]],
+                '?a%5Bb%5D=c',
+            ],
+            'empty scalar value is preserved' => [
+                '{?x*}',
+                ['x' => ['empty' => '', 'nested' => []]],
+                '?empty=',
+            ],
+        ];
+    }
+
+    /**
+     * @dataProvider emptyNestedQueryArrayProvider
+     */
+    public function testSkipsEmptyNestedQueryArrays(string $template, array $variables, string $expansion): void
+    {
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
+    }
+
     /**
      * @ticket https://github.com/guzzle/guzzle/issues/90
      */
