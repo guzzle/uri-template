@@ -38,7 +38,7 @@ final class UriTemplate
      */
     public static function expand(string $template, array $variables): string
     {
-        self::validateTemplateStructure($template);
+        $template = self::prepareTemplate($template);
 
         if (false === \strpos($template, '{')) {
             return $template;
@@ -70,14 +70,21 @@ final class UriTemplate
         };
     }
 
-    private static function validateTemplateStructure(string $template): void
+    private static function prepareTemplate(string $template): string
     {
         $length = \strlen($template);
+        $prepared = '';
+        $literalStart = 0;
 
         for ($offset = 0; $offset < $length; ++$offset) {
             $char = $template[$offset];
 
             if ($char === '{') {
+                $prepared .= self::encodeLiteralSegment(
+                    \substr($template, $literalStart, $offset - $literalStart),
+                    $literalStart
+                );
+
                 $end = \strpos($template, '}', $offset + 1);
 
                 if ($end === false) {
@@ -94,7 +101,10 @@ final class UriTemplate
                     throw self::invalidTemplate($offset, 'nested expressions are not allowed');
                 }
 
+                $prepared .= \substr($template, $offset, $end - $offset + 1);
                 $offset = $end;
+                $literalStart = $end + 1;
+
                 continue;
             }
 
@@ -102,6 +112,8 @@ final class UriTemplate
                 throw self::invalidTemplate($offset, 'unmatched "}"');
             }
         }
+
+        return $prepared.self::encodeLiteralSegment(\substr($template, $literalStart), $literalStart);
     }
 
     private static function invalidTemplate(int $offset, string $message): \InvalidArgumentException
@@ -528,6 +540,86 @@ final class UriTemplate
         }
 
         return \implode('', \array_slice($matches[0], 0, $length));
+    }
+
+    private static function encodeLiteralSegment(string $literal, int $baseOffset): string
+    {
+        if ($literal === '') {
+            return '';
+        }
+
+        $matches = [];
+        $result = \preg_match_all('/%[0-9A-Fa-f]{2}|./us', $literal, $matches, \PREG_OFFSET_CAPTURE);
+
+        if ($result === false || \preg_last_error() !== \PREG_NO_ERROR) {
+            throw self::invalidTemplate($baseOffset, 'literal text must be valid UTF-8');
+        }
+
+        $encoded = '';
+        $position = 0;
+
+        foreach ($matches[0] as $match) {
+            $token = $match[0];
+            $offset = $match[1];
+
+            if ($offset < 0) {
+                throw self::invalidTemplate($baseOffset + $position, 'invalid literal character');
+            }
+
+            if ($offset !== $position) {
+                throw self::invalidTemplate($baseOffset + $position, 'invalid literal character');
+            }
+
+            $position = $offset + \strlen($token);
+
+            if (\preg_match('/\A%[0-9A-Fa-f]{2}\z/', $token) === 1) {
+                $encoded .= $token;
+                continue;
+            }
+
+            if (\strlen($token) === 1) {
+                if (self::isAllowedAsciiLiteral($token)) {
+                    $encoded .= $token;
+                    continue;
+                }
+
+                throw self::invalidTemplate($baseOffset + $offset, $token === '%' ? 'invalid percent-encoded triplet' : 'invalid literal character');
+            }
+
+            if (!self::isAllowedUnicodeLiteral($token)) {
+                throw self::invalidTemplate($baseOffset + $offset, 'invalid literal character');
+            }
+
+            $encoded .= \rawurlencode($token);
+        }
+
+        if ($position !== \strlen($literal)) {
+            throw self::invalidTemplate($baseOffset + $position, 'invalid literal character');
+        }
+
+        return $encoded;
+    }
+
+    private static function isAllowedAsciiLiteral(string $char): bool
+    {
+        $ord = \ord($char);
+
+        return $ord === 0x21
+            || ($ord >= 0x23 && $ord <= 0x24)
+            || $ord === 0x26
+            || $ord === 0x27
+            || ($ord >= 0x28 && $ord <= 0x3B)
+            || $ord === 0x3D
+            || ($ord >= 0x3F && $ord <= 0x5B)
+            || $ord === 0x5D
+            || $ord === 0x5F
+            || ($ord >= 0x61 && $ord <= 0x7A)
+            || $ord === 0x7E;
+    }
+
+    private static function isAllowedUnicodeLiteral(string $char): bool
+    {
+        return \preg_match('/\A(?:[\x{A0}-\x{D7FF}\x{E000}-\x{FDCF}\x{FDF0}-\x{FFEF}]|[\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}\x{F0000}-\x{FFFFD}\x{100000}-\x{10FFFD}])\z/u', $char) === 1;
     }
 
     private static function encodeValue(string $value, bool $allowReserved): string

@@ -8,6 +8,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 
 ### Changed
 - Invalid URI template syntax now throws `InvalidArgumentException` instead of being partially expanded or returned unchanged
+- Literal template text is now validated according to RFC 6570, and valid non-ASCII literals are pct-encoded during expansion
 - URI template variable names and modifiers are now validated according to RFC 6570
 - Prefix modifiers are now rejected for list and map values
 - Referenced variable values are now validated before expansion

@@ -126,6 +126,56 @@ final class UriTemplateTest extends TestCase
         self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
 
+    public static function literalProvider(): array
+    {
+        return [
+            'no expressions' => ['foo', [], 'foo'],
+            'expression with literal path' => ['/users/{id}', ['id' => '123'], '/users/123'],
+            'pct encoded literal' => ['/files/%2F/{id}', ['id' => 'a'], '/files/%2F/a'],
+            'unicode literal' => ["/caf\xC3\xA9/{id}", ['id' => 'a'], '/caf%C3%A9/a'],
+            'emoji literal' => ["/\xF0\x9F\x98\x80/{id}", ['id' => 'a'], '/%F0%9F%98%80/a'],
+        ];
+    }
+
+    /**
+     * @dataProvider literalProvider
+     */
+    public function testExpandsLiteralText(string $template, array $variables, string $expansion): void
+    {
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
+    }
+
+    public static function invalidLiteralProvider(): array
+    {
+        return [
+            'space' => ['foo bar'],
+            'trailing percent' => ['foo%'],
+            'short percent triplet' => ['foo%2'],
+            'non-hex percent triplet' => ['foo%ZZ'],
+            'double quote' => ['foo"bar'],
+            'less-than' => ['foo<bar'],
+            'greater-than' => ['foo>bar'],
+            'backslash' => ['foo\bar'],
+            'caret' => ['foo^bar'],
+            'backtick' => ['foo`bar'],
+            'pipe' => ['foo|bar'],
+            'nul' => ["foo\x00bar"],
+            'crlf' => ["foo\r\nbar"],
+            'del' => ["foo\x7Fbar"],
+            'c1 control' => ["foo\xC2\x80bar"],
+            'invalid utf-8' => ["foo\xC3".'bar'],
+            'invalid after expression' => ['/{id}/bad path'],
+        ];
+    }
+
+    /**
+     * @dataProvider invalidLiteralProvider
+     */
+    public function testRejectsInvalidLiteralText(string $template): void
+    {
+        $this->assertInvalidTemplate($template, ['id' => 'a']);
+    }
+
     public static function reservedExpansionPctTripletProvider(): array
     {
         return [
