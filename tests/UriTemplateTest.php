@@ -395,6 +395,23 @@ final class UriTemplateTest extends TestCase
         $this->assertInvalidTemplate('{?x*}', ['x' => ['a' => $tooDeep]]);
     }
 
+    public static function deterministicArrayShapeProvider(): array
+    {
+        return [
+            'dense list' => ['{?x*}', ['x' => ['a', 'b']], '?x=a&x=b'],
+            'sparse numeric map' => ['{?x*}', ['x' => [1 => 'a', 3 => 'b']], '?1=a&3=b'],
+            'mixed map' => ['{?x*}', ['x' => [0 => 'a', 'b' => 'c']], '?0=a&b=c'],
+        ];
+    }
+
+    /**
+     * @dataProvider deterministicArrayShapeProvider
+     */
+    public function testExpandsDeterministicArrayShapes(string $template, array $variables, string $expansion): void
+    {
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
+    }
+
     public static function expressionProvider(): array
     {
         return [

@@ -502,15 +502,14 @@ final class UriTemplate
 
     /**
      * Determines if an array is associative.
-     *
-     * This makes the assumption that input arrays are sequences or hashes.
-     * This assumption is a tradeoff for accuracy in favor of speed, but it
-     * should work in almost every case where input is supplied for a URI
-     * template.
      */
     private static function isAssoc(array $array): bool
     {
-        return $array && \array_keys($array)[0] !== 0;
+        if ($array === []) {
+            return false;
+        }
+
+        return \array_keys($array) !== \range(0, \count($array) - 1);
     }
 
     private static function encodeValue(string $value, bool $allowReserved): string
