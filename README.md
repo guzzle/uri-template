@@ -1,23 +1,126 @@
 # uri-template
 
+A small [RFC 6570](https://datatracker.ietf.org/doc/html/rfc6570) URI
+Template expander for PHP.
+
+It expands URI templates using a variable map and encodes variable values
+according to the template expression type.
+
 ## Install
 
 Via Composer
 
-``` bash
-$ composer require guzzlehttp/uri-template
+```bash
+composer require guzzlehttp/uri-template
 ```
 
-## Change log
+## Usage
+
+```php
+use GuzzleHttp\UriTemplate\UriTemplate;
+
+$uri = UriTemplate::expand('/users/{id}{?tab}', [
+    'id' => 123,
+    'tab' => 'settings',
+]);
+
+// /users/123?tab=settings
+```
+
+The first argument is an RFC 6570 URI template. The second argument is an array
+of variables to use during expansion.
+
+Variable values are encoded during expansion:
+
+```php
+UriTemplate::expand('/search{?q}', ['q' => 'Hello World!']);
+
+// /search?q=Hello%20World%21
+```
+
+Reserved expansion (`{+var}`) and fragment expansion (`{#var}`) preserve URI
+reserved delimiters:
+
+```php
+UriTemplate::expand('{+path}', ['path' => '/foo/bar']);
+
+// /foo/bar
+```
+
+Dense zero-indexed arrays expand as lists:
+
+```php
+UriTemplate::expand('/tags{/tags*}', [
+    'tags' => ['red', 'green', 'blue'],
+]);
+
+// /tags/red/green/blue
+```
+
+Sparse or mixed-key arrays expand as maps. Map order follows PHP array insertion
+order:
+
+```php
+UriTemplate::expand('/search{?filter*}', [
+    'filter' => [
+        'status' => 'open',
+        'sort' => 'created',
+    ],
+]);
+
+// /search?status=open&sort=created
+```
+
+Nested arrays are supported for exploded query-style expansions, such as
+`{?var*}` and `{&var*}`:
+
+```php
+UriTemplate::expand('/search{?filter*}', [
+    'filter' => [
+        'author' => [
+            'name' => 'Ada Lovelace',
+        ],
+    ],
+]);
+
+// /search?author%5Bname%5D=Ada%20Lovelace
+```
+
+Empty nested arrays are omitted from exploded query expansions.
+
+## Input Contract
+
+`UriTemplate::expand()` expects an RFC 6570 URI template and an array of
+variables.
+
+Supported variable values are:
+
+- `null`, which is treated as undefined and omitted
+- scalars
+- objects with `__toString()`
+- lists
+- maps
+
+Invalid templates or unsupported variable values throw `InvalidArgumentException`.
+
+Literal text outside expressions must already be valid URI template literal text.
+For example, use `/search%20terms/{id}` instead of `/search terms/{id}`.
+
+Templates should generally be application-controlled. If templates come from
+users or remote systems, treat them as policy input and review them before
+expansion.
+
+## Upgrading
+
+Please see [UPGRADING](UPGRADING.md) for details on upgrading to new major
+versions.
 
 Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
 
-Please see [UPGRADING](UPGRADING.md) for details on upgrading to new major versions.
-
 ## Testing
 
-``` bash
-$ make test
+```bash
+make test
 ```
 
 ## Security
@@ -26,7 +129,7 @@ If you discover a security vulnerability within this package, please send an ema
 
 ## License
 
-Guzzle is made available under the MIT License (MIT). Please see [License File](LICENSE) for more information.
+Guzzle URI Template is made available under the MIT License (MIT). Please see [License File](LICENSE) for more information.
 
 ## For Enterprise
 
