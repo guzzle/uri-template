@@ -16,6 +16,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 ### Fixed
 - Fixed reserved and fragment expansion preserving existing pct-encoded triplets in variable values
 - Fixed invalid template expressions being accepted as parameter names in query and path-style parameter expansions
+- Fixed prefix modifiers counting bytes instead of Unicode code points and pct-encoded triplets
 - Fixed unsupported variable shapes producing PHP warnings, conversion errors, or lossy `Array` output
 
 ### Removed

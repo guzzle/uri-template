@@ -265,6 +265,31 @@ final class UriTemplateTest extends TestCase
         self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
 
+    public static function unicodePrefixProvider(): array
+    {
+        return [
+            'simple first unicode character' => ['{var:1}', ['var' => "\xC3\xA9clair"], '%C3%A9'],
+            'simple unicode and ascii characters' => ['{var:2}', ['var' => "\xC3\xA9clair"], '%C3%A9c'],
+            'reserved unicode and slash characters' => ['{+var:2}', ['var' => "\xC3\xA9/clair"], '%C3%A9/'],
+            'query unicode character' => ['{?var:1}', ['var' => "\xC3\xA9clair"], '?var=%C3%A9'],
+            'pct triplet counts as one character' => ['{var:1}', ['var' => '%2Fabc'], '%252F'],
+            'reserved pct triplet counts as one character' => ['{+var:1}', ['var' => '%2Fabc'], '%2F'],
+        ];
+    }
+
+    /**
+     * @dataProvider unicodePrefixProvider
+     */
+    public function testExpandsUnicodePrefixes(string $template, array $variables, string $expansion): void
+    {
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
+    }
+
+    public function testRejectsInvalidUtf8PrefixValues(): void
+    {
+        $this->assertInvalidTemplate('{var:1}', ['var' => "\xC3"]);
+    }
+
     public static function invalidModifierProvider(): array
     {
         return [
