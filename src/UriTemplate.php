@@ -111,6 +111,9 @@ final class UriTemplate
                             if ($isNestedArray) {
                                 // Nested arrays must allow for deeply nested structures.
                                 $var = \http_build_query([$rawKey => $var], '', '&', \PHP_QUERY_RFC3986);
+                                if ($var === '') {
+                                    continue;
+                                }
                             } else {
                                 $var = \sprintf('%s=%s', (string) $key, (string) $var);
                             }
@@ -123,8 +126,8 @@ final class UriTemplate
                     $kvp[$key] = $var;
                 }
 
-                if (0 === \count($variable)) {
-                    $actuallyUseQuery = false;
+                if ($kvp === []) {
+                    continue;
                 } elseif ($value['modifier'] === '*') {
                     $expanded = \implode($joiner, $kvp);
                     if ($isAssoc) {

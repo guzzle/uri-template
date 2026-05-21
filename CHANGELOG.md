@@ -7,6 +7,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 ## v1.0.6 - Unreleased
 
 ### Fixed
+- Fixed empty nested arrays adding empty components to exploded query expansions
 - Fixed nested query array keys being double-encoded during exploded query expansion
 - Fixed reserved and fragment expansion preserving existing pct-encoded triplets in variable values
 
