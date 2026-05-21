@@ -95,7 +95,8 @@ final class UriTemplate
                 /** @var mixed $var */
                 foreach ($variable as $key => $var) {
                     if ($isAssoc) {
-                        $key = \rawurlencode((string) $key);
+                        $rawKey = (string) $key;
+                        $key = \rawurlencode($rawKey);
                         $isNestedArray = \is_array($var);
                     } else {
                         $isNestedArray = false;
@@ -109,7 +110,7 @@ final class UriTemplate
                         if ($isAssoc) {
                             if ($isNestedArray) {
                                 // Nested arrays must allow for deeply nested structures.
-                                $var = \http_build_query([$key => $var], '', '&', \PHP_QUERY_RFC3986);
+                                $var = \http_build_query([$rawKey => $var], '', '&', \PHP_QUERY_RFC3986);
                             } else {
                                 $var = \sprintf('%s=%s', (string) $key, (string) $var);
                             }
