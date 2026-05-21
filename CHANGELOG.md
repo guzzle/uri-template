@@ -6,6 +6,18 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 
 ## v2.0.0 - Unreleased
 
+### Changed
+- Invalid URI template syntax now throws `InvalidArgumentException` instead of being partially expanded or returned unchanged
+- URI template variable names and modifiers are now validated according to RFC 6570
+- Prefix modifiers are now rejected for list and map values
+- Referenced variable values are now validated before expansion
+- Dense zero-indexed arrays are expanded as lists, and sparse or mixed-key arrays are expanded as maps
+
+### Fixed
+- Fixed reserved and fragment expansion preserving existing pct-encoded triplets in variable values
+- Fixed invalid template expressions being accepted as parameter names in query and path-style parameter expansions
+- Fixed unsupported variable shapes producing PHP warnings, conversion errors, or lossy `Array` output
+
 ### Removed
 - Dropped support for PHP 7.2 and 7.3
 
