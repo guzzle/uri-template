@@ -26,54 +26,6 @@ final class UriTemplate
     ];
 
     /**
-     * @var string[] Delimiters
-     */
-    private static $delims = [
-        ':',
-        '/',
-        '?',
-        '#',
-        '[',
-        ']',
-        '@',
-        '!',
-        '$',
-        '&',
-        '\'',
-        '(',
-        ')',
-        '*',
-        '+',
-        ',',
-        ';',
-        '=',
-    ];
-
-    /**
-     * @var string[] Percent encoded delimiters
-     */
-    private static $delimsPct = [
-        '%3A',
-        '%2F',
-        '%3F',
-        '%23',
-        '%5B',
-        '%5D',
-        '%40',
-        '%21',
-        '%24',
-        '%26',
-        '%27',
-        '%28',
-        '%29',
-        '%2A',
-        '%2B',
-        '%2C',
-        '%3B',
-        '%3D',
-    ];
-
-    /**
      * @param array<string,mixed> $variables Variables to use in the template expansion
      *
      * @throws \RuntimeException
@@ -125,6 +77,7 @@ final class UriTemplate
         $prefix = self::$operatorHash[$parsed['operator']]['prefix'];
         $joiner = self::$operatorHash[$parsed['operator']]['joiner'];
         $useQuery = self::$operatorHash[$parsed['operator']]['query'];
+        $allowReserved = $parsed['operator'] === '+' || $parsed['operator'] === '#';
         $allUndefined = true;
 
         foreach ($parsed['values'] as $value) {
@@ -149,10 +102,7 @@ final class UriTemplate
                     }
 
                     if (!$isNestedArray) {
-                        $var = \rawurlencode((string) $var);
-                        if ($parsed['operator'] === '+' || $parsed['operator'] === '#') {
-                            $var = self::decodeReserved($var);
-                        }
+                        $var = self::encodeValue((string) $var, $allowReserved);
                     }
 
                     if ($value['modifier'] === '*') {
@@ -198,10 +148,7 @@ final class UriTemplate
                 if ($value['modifier'] === ':' && isset($value['position'])) {
                     $variable = \substr((string) $variable, 0, $value['position']);
                 }
-                $expanded = \rawurlencode((string) $variable);
-                if ($parsed['operator'] === '+' || $parsed['operator'] === '#') {
-                    $expanded = self::decodeReserved($expanded);
-                }
+                $expanded = self::encodeValue((string) $variable, $allowReserved);
             }
 
             if ($actuallyUseQuery) {
@@ -284,12 +231,38 @@ final class UriTemplate
         return $array && \array_keys($array)[0] !== 0;
     }
 
-    /**
-     * Removes percent encoding on reserved characters (used with + and #
-     * modifiers).
-     */
-    private static function decodeReserved(string $string): string
+    private static function encodeValue(string $value, bool $allowReserved): string
     {
-        return \str_replace(self::$delimsPct, self::$delims, $string);
+        if ($value === '') {
+            return '';
+        }
+
+        $matches = [];
+        if (\preg_match_all('/%[0-9A-Fa-f]{2}|./s', $value, $matches) === false) {
+            throw new \RuntimeException('Unable to encode URI template value.');
+        }
+
+        $encoded = '';
+
+        foreach ($matches[0] as $token) {
+            if ($allowReserved && \preg_match('/\A%[0-9A-Fa-f]{2}\z/', $token) === 1) {
+                $encoded .= $token;
+                continue;
+            }
+
+            if (\preg_match('/\A[A-Za-z0-9._~-]\z/', $token) === 1) {
+                $encoded .= $token;
+                continue;
+            }
+
+            if ($allowReserved && \strlen($token) === 1 && \strpos(":/?#[]@!$&'()*+,;=", $token) !== false) {
+                $encoded .= $token;
+                continue;
+            }
+
+            $encoded .= \rawurlencode($token);
+        }
+
+        return $encoded;
     }
 }
