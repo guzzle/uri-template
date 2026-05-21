@@ -316,6 +316,85 @@ final class UriTemplateTest extends TestCase
         self::assertSame('', UriTemplate::expand('{list:1}', ['list' => []]));
     }
 
+    public static function supportedVariableShapeProvider(): array
+    {
+        return [
+            'string' => ['{x}', ['x' => 'value'], 'value'],
+            'int zero' => ['{x}', ['x' => 0], '0'],
+            'float' => ['{x}', ['x' => 37.76], '37.76'],
+            'false' => ['{x}', ['x' => false], ''],
+            'true' => ['{x}', ['x' => true], '1'],
+            'empty string query' => ['{?x}', ['x' => ''], '?x='],
+            'top-level null skipped' => ['{?x,y}', ['x' => null, 'y' => 'yes'], '?y=yes'],
+            'stringable object' => ['{x}', ['x' => new StringableValue('ok')], 'ok'],
+            'stringable object in list' => ['{x}', ['x' => [new StringableValue('ok')]], 'ok'],
+            'stringable object in map' => ['{?x*}', ['x' => ['a' => new StringableValue('ok')]], '?a=ok'],
+            'list' => ['{/x*}', ['x' => ['red', 'green']], '/red/green'],
+            'map' => ['{?x*}', ['x' => ['a' => 'b']], '?a=b'],
+            'nested exploded map extension' => ['{?x*}', ['x' => ['a' => ['b' => 'c']]], '?a%5Bb%5D=c'],
+        ];
+    }
+
+    /**
+     * @dataProvider supportedVariableShapeProvider
+     */
+    public function testExpandsSupportedVariableShapes(string $template, array $variables, string $expansion): void
+    {
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
+    }
+
+    public static function invalidVariableShapeProvider(): array
+    {
+        $resource = \fopen('php://temp', 'r');
+        self::assertIsResource($resource);
+
+        return [
+            'stdClass scalar' => ['{x}', ['x' => new \stdClass()]],
+            'closure scalar' => ['{x}', ['x' => static function (): void {}]],
+            'resource scalar' => ['{x}', ['x' => $resource]],
+            'object in list' => ['{?x}', ['x' => [new \stdClass()]]],
+            'object in map' => ['{?x}', ['x' => ['a' => new \stdClass()]]],
+            'nested list in list' => ['{?x}', ['x' => [['a']]]],
+            'nested array in unexploded map' => ['{?x}', ['x' => ['a' => ['b' => 'c']]]],
+            'nested array in non-query exploded map' => ['{/x*}', ['x' => ['a' => ['b' => 'c']]]],
+            'nested null in list' => ['{?x*}', ['x' => ['a', null]]],
+            'nested null in map' => ['{?x*}', ['x' => ['a' => null]]],
+            'nested object in query extension' => ['{?x*}', ['x' => ['a' => ['b' => new \stdClass()]]]],
+        ];
+    }
+
+    /**
+     * @dataProvider invalidVariableShapeProvider
+     */
+    public function testRejectsInvalidVariableShapes(string $template, array $variables): void
+    {
+        $this->assertInvalidTemplate($template, $variables);
+    }
+
+    public function testIgnoresUnusedInvalidVariableShapes(): void
+    {
+        self::assertSame('ok', UriTemplate::expand('{x}', ['x' => 'ok', 'unused' => new \stdClass()]));
+    }
+
+    public function testRejectsRecursiveArrayVariables(): void
+    {
+        $recursive = [];
+        $recursive['self'] = &$recursive;
+
+        $this->assertInvalidTemplate('{?recursive*}', ['recursive' => $recursive]);
+    }
+
+    public function testRejectsTooDeepArrayVariables(): void
+    {
+        $tooDeep = 'leaf';
+
+        for ($i = 0; $i < 66; ++$i) {
+            $tooDeep = ['x' => $tooDeep];
+        }
+
+        $this->assertInvalidTemplate('{?x*}', ['x' => ['a' => $tooDeep]]);
+    }
+
     public static function expressionProvider(): array
     {
         return [
@@ -453,5 +532,21 @@ final class UriTemplateTest extends TestCase
         self::assertIsArray($decoded);
 
         return $decoded;
+    }
+}
+
+final class StringableValue
+{
+    /** @var string */
+    private $value;
+
+    public function __construct(string $value)
+    {
+        $this->value = $value;
+    }
+
+    public function __toString(): string
+    {
+        return $this->value;
     }
 }
