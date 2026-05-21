@@ -11,9 +11,3 @@ parameters:
 			identifier: cast.string
 			count: 3
 			path: src/UriTemplate.php
-
-		-
-			message: '#^Method GuzzleHttp\\UriTemplate\\UriTemplate\:\:isAssoc\(\) has parameter \$array with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/UriTemplate.php

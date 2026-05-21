@@ -12,6 +12,9 @@ use PHPUnit\Framework\TestCase;
  */
 final class UriTemplateTest extends TestCase
 {
+    /**
+     * @return array<int,array{0:string, 1:string, 2:array<string,mixed>}>
+     */
     public static function templateProvider(): array
     {
         $variables = [
@@ -120,12 +123,17 @@ final class UriTemplateTest extends TestCase
 
     /**
      * @dataProvider templateProvider
+     *
+     * @param array<string,mixed> $variables
      */
     public function testExpandsUriTemplates(string $template, string $expansion, array $variables): void
     {
         self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
 
+    /**
+     * @return array<string,array{0:string, 1:array<string,mixed>, 2:string}>
+     */
     public static function literalProvider(): array
     {
         return [
@@ -140,12 +148,17 @@ final class UriTemplateTest extends TestCase
 
     /**
      * @dataProvider literalProvider
+     *
+     * @param array<string,mixed> $variables
      */
     public function testExpandsLiteralText(string $template, array $variables, string $expansion): void
     {
         self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
 
+    /**
+     * @return array<string,array{0:string}>
+     */
     public static function invalidLiteralProvider(): array
     {
         return [
@@ -177,6 +190,9 @@ final class UriTemplateTest extends TestCase
         $this->assertInvalidTemplate($template, ['id' => 'a']);
     }
 
+    /**
+     * @return array<string,array{0:string, 1:array<string,mixed>, 2:string}>
+     */
     public static function reservedExpansionPctTripletProvider(): array
     {
         return [
@@ -192,12 +208,17 @@ final class UriTemplateTest extends TestCase
 
     /**
      * @dataProvider reservedExpansionPctTripletProvider
+     *
+     * @param array<string,mixed> $variables
      */
     public function testReservedExpansionPreservesPctTriplets(string $template, array $variables, string $expansion): void
     {
         self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
 
+    /**
+     * @return array<string,array{0:string}>
+     */
     public static function malformedDelimiterProvider(): array
     {
         return [
@@ -217,6 +238,9 @@ final class UriTemplateTest extends TestCase
         $this->assertInvalidTemplate($template, ['var' => 'value', 'id' => 'thing']);
     }
 
+    /**
+     * @return array<string,array{0:string}>
+     */
     public static function invalidOperatorOrVarlistProvider(): array
     {
         return [
@@ -242,6 +266,9 @@ final class UriTemplateTest extends TestCase
         $this->assertInvalidTemplate($template, ['hello' => 'Hello World!', 'path' => '/foo/bar', 'var' => 'value', 'x' => '1024', 'y' => '768']);
     }
 
+    /**
+     * @return array<string,array{0:string, 1:array<string,mixed>, 2:string}>
+     */
     public static function validVariableNameProvider(): array
     {
         return [
@@ -256,12 +283,17 @@ final class UriTemplateTest extends TestCase
 
     /**
      * @dataProvider validVariableNameProvider
+     *
+     * @param array<string,mixed> $variables
      */
     public function testExpandsValidVariableNames(string $template, array $variables, string $expansion): void
     {
         self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
 
+    /**
+     * @return array<string,array{0:string}>
+     */
     public static function invalidVariableNameProvider(): array
     {
         return [
@@ -299,6 +331,9 @@ final class UriTemplateTest extends TestCase
         $this->assertInvalidTemplate($template);
     }
 
+    /**
+     * @return array<string,array{0:string, 1:array<string,mixed>, 2:string}>
+     */
     public static function validModifierProvider(): array
     {
         return [
@@ -311,12 +346,17 @@ final class UriTemplateTest extends TestCase
 
     /**
      * @dataProvider validModifierProvider
+     *
+     * @param array<string,mixed> $variables
      */
     public function testExpandsValidModifiers(string $template, array $variables, string $expansion): void
     {
         self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
 
+    /**
+     * @return array<string,array{0:string, 1:array<string,mixed>, 2:string}>
+     */
     public static function unicodePrefixProvider(): array
     {
         return [
@@ -331,6 +371,8 @@ final class UriTemplateTest extends TestCase
 
     /**
      * @dataProvider unicodePrefixProvider
+     *
+     * @param array<string,mixed> $variables
      */
     public function testExpandsUnicodePrefixes(string $template, array $variables, string $expansion): void
     {
@@ -342,6 +384,9 @@ final class UriTemplateTest extends TestCase
         $this->assertInvalidTemplate('{var:1}', ['var' => "\xC3"]);
     }
 
+    /**
+     * @return array<string,array{0:string}>
+     */
     public static function invalidModifierProvider(): array
     {
         return [
@@ -368,6 +413,9 @@ final class UriTemplateTest extends TestCase
         $this->assertInvalidTemplate($template);
     }
 
+    /**
+     * @return array<string,array{0:string, 1:array<string,mixed>}>
+     */
     public static function prefixOnCompositeProvider(): array
     {
         return [
@@ -380,6 +428,8 @@ final class UriTemplateTest extends TestCase
 
     /**
      * @dataProvider prefixOnCompositeProvider
+     *
+     * @param array<string,mixed> $variables
      */
     public function testRejectsPrefixModifiersOnCompositeValues(string $template, array $variables): void
     {
@@ -393,6 +443,9 @@ final class UriTemplateTest extends TestCase
         self::assertSame('', UriTemplate::expand('{list:1}', ['list' => []]));
     }
 
+    /**
+     * @return array<string,array{0:string, 1:array<string,mixed>, 2:string}>
+     */
     public static function supportedVariableShapeProvider(): array
     {
         return [
@@ -414,12 +467,17 @@ final class UriTemplateTest extends TestCase
 
     /**
      * @dataProvider supportedVariableShapeProvider
+     *
+     * @param array<string,mixed> $variables
      */
     public function testExpandsSupportedVariableShapes(string $template, array $variables, string $expansion): void
     {
         self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
 
+    /**
+     * @return array<string,array{0:string, 1:array<string,mixed>}>
+     */
     public static function invalidVariableShapeProvider(): array
     {
         $resource = \fopen('php://temp', 'r');
@@ -442,6 +500,8 @@ final class UriTemplateTest extends TestCase
 
     /**
      * @dataProvider invalidVariableShapeProvider
+     *
+     * @param array<string,mixed> $variables
      */
     public function testRejectsInvalidVariableShapes(string $template, array $variables): void
     {
@@ -472,6 +532,9 @@ final class UriTemplateTest extends TestCase
         $this->assertInvalidTemplate('{?x*}', ['x' => ['a' => $tooDeep]]);
     }
 
+    /**
+     * @return array<string,array{0:string, 1:array<string,mixed>, 2:string}>
+     */
     public static function deterministicArrayShapeProvider(): array
     {
         return [
@@ -484,12 +547,17 @@ final class UriTemplateTest extends TestCase
 
     /**
      * @dataProvider deterministicArrayShapeProvider
+     *
+     * @param array<string,mixed> $variables
      */
     public function testExpandsDeterministicArrayShapes(string $template, array $variables, string $expansion): void
     {
         self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
 
+    /**
+     * @return array<int,array{0:string, 1:array{operator:string, values:array<int,array{value:string, modifier:string, position?:int}>}}>
+     */
     public static function expressionProvider(): array
     {
         return [
@@ -526,6 +594,8 @@ final class UriTemplateTest extends TestCase
 
     /**
      * @dataProvider expressionProvider
+     *
+     * @param array{operator:string, values:array<int,array{value:string, modifier:string, position?:int}>} $data
      */
     public function testParsesExpressions(string $exp, array $data): void
     {
@@ -568,6 +638,9 @@ final class UriTemplateTest extends TestCase
         self::assertSame('http://example.com/foo/bar/one,two?query=test&more%5B0%5D=fun&more%5B1%5D=ice%20cream&baz%5Bbar%5D=fizz&baz%5Btest%5D=buzz&bam=boo', $result);
     }
 
+    /**
+     * @return \Generator<int,array{0:string, 1:array<int,string>, 2:array<string,mixed>},mixed,void>
+     */
     public static function specComplianceProvider(): \Generator
     {
         foreach (['spec-examples.json', 'spec-examples-by-section.json', 'extended-tests.json'] as $filename) {
@@ -579,12 +652,18 @@ final class UriTemplateTest extends TestCase
 
     /**
      * @dataProvider specComplianceProvider
+     *
+     * @param array<int,string>   $expansions
+     * @param array<string,mixed> $variables
      */
     public function testSpecCompliance(string $template, array $expansions, array $variables): void
     {
         self::assertContains(UriTemplate::expand($template, $variables), $expansions);
     }
 
+    /**
+     * @return \Generator<int,array{0:string, 1:array<int,string>, 2:array<string,mixed>},mixed,void>
+     */
     private static function parseSpecExamples(string $filename): \Generator
     {
         foreach (self::loadSpecFixture($filename) as $example) {
@@ -595,6 +674,9 @@ final class UriTemplateTest extends TestCase
         }
     }
 
+    /**
+     * @param array<string,mixed> $variables
+     */
     private function assertInvalidTemplate(string $template, array $variables = []): void
     {
         $this->expectException(\InvalidArgumentException::class);
@@ -604,12 +686,17 @@ final class UriTemplateTest extends TestCase
 
     /**
      * @dataProvider invalidSpecProvider
+     *
+     * @param array<string,mixed> $variables
      */
     public function testRejectsInvalidSpecTemplates(string $template, array $variables): void
     {
         $this->assertInvalidTemplate($template, $variables);
     }
 
+    /**
+     * @return \Generator<string,array{0:string, 1:array<string,mixed>},mixed,void>
+     */
     public static function invalidSpecProvider(): \Generator
     {
         foreach (self::loadSpecFixture('negative-tests.json') as $groupName => $group) {
@@ -626,6 +713,9 @@ final class UriTemplateTest extends TestCase
         }
     }
 
+    /**
+     * @return array<string,array{level:int, variables:array<string,mixed>, testcases:array<int,array{0:string, 1:string|array<int,string>|false}>}>
+     */
     private static function loadSpecFixture(string $filename): array
     {
         $contents = \file_get_contents(\sprintf('%s/../vendor/uri-template/tests/%s', __DIR__, $filename));
