@@ -19,7 +19,7 @@ final class UriTemplate
     /**
      * @var array<string, array{prefix:string, joiner:string, query:bool}> Hash for quick operator lookups
      */
-    private static $operatorHash = [
+    private static array $operatorHash = [
         '' => ['prefix' => '', 'joiner' => ',', 'query' => false],
         '+' => ['prefix' => '', 'joiner' => ',', 'query' => false],
         '#' => ['prefix' => '#', 'joiner' => ',', 'query' => false],
@@ -61,9 +61,9 @@ final class UriTemplate
     /**
      * @param array<string,mixed> $variables Variables to use in the template expansion
      *
-     * @return callable(string[]): string
+     * @return \Closure(array<string>): string
      */
-    private static function expandMatchCallback(array $variables): callable
+    private static function expandMatchCallback(array $variables): \Closure
     {
         return static function (array $matches) use ($variables): string {
             return self::expandMatch($matches, $variables);
@@ -516,6 +516,8 @@ final class UriTemplate
 
     /**
      * Determines if an array should be expanded as a map.
+     *
+     * @param array<array-key,mixed> $array
      */
     private static function isAssoc(array $array): bool
     {
