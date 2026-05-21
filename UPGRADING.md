@@ -110,8 +110,6 @@ prefixed string value must be valid UTF-8, otherwise expansion throws
 
 Reserved expansion (`{+var}`) and fragment expansion (`{#var}`) intentionally
 preserve URI reserved delimiters from variable values according to RFC 6570.
-They also preserve valid pct-encoded triplets already present in variable
-values.
 
 Templates should generally be application-controlled. If templates come from
 users or remote systems, treat them as policy input and review them before
