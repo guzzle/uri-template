@@ -14,13 +14,17 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Dense zero-indexed arrays are expanded as lists, and sparse or mixed-key arrays are expanded as maps
 
 ### Fixed
-- Fixed reserved and fragment expansion preserving existing pct-encoded triplets in variable values
 - Fixed invalid template expressions being accepted as parameter names in query and path-style parameter expansions
 - Fixed prefix modifiers counting bytes instead of Unicode code points and pct-encoded triplets
 - Fixed unsupported variable shapes producing PHP warnings, conversion errors, or lossy `Array` output
 
 ### Removed
 - Dropped support for PHP 7.2 and 7.3
+
+## v1.0.6 - Unreleased
+
+### Fixed
+- Fixed reserved and fragment expansion preserving existing pct-encoded triplets in variable values
 
 ## v1.0.5 - 2025-08-22
 

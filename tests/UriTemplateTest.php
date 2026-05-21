@@ -130,6 +130,7 @@ final class UriTemplateTest extends TestCase
     {
         return [
             'scalar reserved' => ['{+id}', ['id' => 'admin%2F'], 'admin%2F'],
+            'scalar lowercase pct reserved' => ['{+id}', ['id' => 'admin%2f'], 'admin%2f'],
             'scalar fragment' => ['{#id}', ['id' => 'admin%2F'], '#admin%2F'],
             'scalar simple still encodes pct' => ['{id}', ['id' => 'admin%2F'], 'admin%252F'],
             'invalid pct remains encoded' => ['{+id}', ['id' => '%foo'], '%25foo'],
