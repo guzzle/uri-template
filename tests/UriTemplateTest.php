@@ -525,6 +525,14 @@ final class UriTemplateTest extends TestCase
         UriTemplate::expand($template, $variables);
     }
 
+    /**
+     * @dataProvider invalidSpecProvider
+     */
+    public function testRejectsInvalidSpecTemplates(string $template, array $variables): void
+    {
+        $this->assertInvalidTemplate($template, $variables);
+    }
+
     public static function invalidSpecProvider(): \Generator
     {
         foreach (self::loadSpecFixture('negative-tests.json') as $groupName => $group) {
