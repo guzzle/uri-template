@@ -25,12 +25,13 @@ specifiers, and prefix modifiers applied to list or map values.
 
 #### Literal Text
 
-Literal text outside expressions is now validated according to RFC 6570. Invalid
-literal characters, including spaces, raw or malformed `%` sequences, double
-quotes, controls, `<`, `>`, backslash, caret, backtick, and pipe, now throw
-`InvalidArgumentException`. Valid non-ASCII literal text must be valid UTF-8 and
-is pct-encoded during expansion. Templates without expressions are also
-validated and encoded.
+Literal text outside expressions is now validated and encoded using RFC 6570
+literal rules, with apostrophes preserved for compatibility with upstream RFC
+example fixtures. Invalid literal characters, including spaces, raw or malformed
+`%` sequences, double quotes, controls, `<`, `>`, backslash, caret, backtick,
+and pipe, now throw `InvalidArgumentException`. Valid non-ASCII literal text
+must be valid UTF-8 and is pct-encoded during expansion. Templates without
+expressions are also validated and encoded.
 
 Before:
 

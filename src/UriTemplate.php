@@ -607,6 +607,7 @@ final class UriTemplate
         return $ord === 0x21
             || ($ord >= 0x23 && $ord <= 0x24)
             || $ord === 0x26
+            // Upstream RFC example fixtures include apostrophes as literal text.
             || $ord === 0x27
             || ($ord >= 0x28 && $ord <= 0x3B)
             || $ord === 0x3D
