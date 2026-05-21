@@ -4,6 +4,11 @@ All notable changes to `uri-template` will be documented in this file.
 
 Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) principles.
 
+## v1.0.6 - Unreleased
+
+### Fixed
+- Fixed reserved and fragment expansion preserving existing pct-encoded triplets in variable values
+
 ## v1.0.5 - 2025-08-22
 
 ### Changed
