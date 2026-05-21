@@ -17,9 +17,11 @@ final class UriTemplate
     private const MAX_VARIABLE_DEPTH = 64;
 
     /**
-     * @var array<string, array{prefix:string, joiner:string, query:bool}> Hash for quick operator lookups
+     * Hash for quick operator lookups.
+     *
+     * @var array<string, array{prefix:string, joiner:string, query:bool}>
      */
-    private static array $operatorHash = [
+    private const OPERATOR_HASH = [
         '' => ['prefix' => '', 'joiner' => ',', 'query' => false],
         '+' => ['prefix' => '', 'joiner' => ',', 'query' => false],
         '#' => ['prefix' => '#', 'joiner' => ',', 'query' => false],
@@ -137,9 +139,9 @@ final class UriTemplate
     {
         $replacements = [];
         $parsed = self::parseExpression($matches[1]);
-        $prefix = self::$operatorHash[$parsed['operator']]['prefix'];
-        $joiner = self::$operatorHash[$parsed['operator']]['joiner'];
-        $useQuery = self::$operatorHash[$parsed['operator']]['query'];
+        $prefix = self::OPERATOR_HASH[$parsed['operator']]['prefix'];
+        $joiner = self::OPERATOR_HASH[$parsed['operator']]['joiner'];
+        $useQuery = self::OPERATOR_HASH[$parsed['operator']]['query'];
         $allowReserved = $parsed['operator'] === '+' || $parsed['operator'] === '#';
         $allUndefined = true;
 
@@ -267,7 +269,7 @@ final class UriTemplate
         $operator = '';
         $first = $expression[0];
 
-        if (isset(self::$operatorHash[$first])) {
+        if (isset(self::OPERATOR_HASH[$first])) {
             $operator = $first;
             /** @var string */
             $expression = \substr($expression, 1);
