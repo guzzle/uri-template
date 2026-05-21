@@ -399,6 +399,7 @@ final class UriTemplateTest extends TestCase
     {
         return [
             'dense list' => ['{?x*}', ['x' => ['a', 'b']], '?x=a&x=b'],
+            'zero-based sparse numeric map' => ['{?x*}', ['x' => [0 => 'a', 2 => 'b']], '?0=a&2=b'],
             'sparse numeric map' => ['{?x*}', ['x' => [1 => 'a', 3 => 'b']], '?1=a&3=b'],
             'mixed map' => ['{?x*}', ['x' => [0 => 'a', 'b' => 'c']], '?0=a&b=c'],
         ];

@@ -501,7 +501,7 @@ final class UriTemplate
     }
 
     /**
-     * Determines if an array is associative.
+     * Determines if an array should be expanded as a map.
      */
     private static function isAssoc(array $array): bool
     {
