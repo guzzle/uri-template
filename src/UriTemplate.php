@@ -203,9 +203,11 @@ final class UriTemplate
                 }
             } else {
                 $allUndefined = false;
+
                 if ($value['modifier'] === ':' && isset($value['position'])) {
-                    $variable = \substr((string) $variable, 0, $value['position']);
+                    $variable = self::prefixValue((string) $variable, $value['position'], $matches[1], $value['value']);
                 }
+
                 $expanded = self::encodeValue((string) $variable, $allowReserved);
             }
 
@@ -510,6 +512,22 @@ final class UriTemplate
         }
 
         return \array_keys($array) !== \range(0, \count($array) - 1);
+    }
+
+    private static function prefixValue(string $value, int $length, string $expression, string $name): string
+    {
+        if ($value === '') {
+            return '';
+        }
+
+        $matches = [];
+        $result = \preg_match_all('/%[0-9A-Fa-f]{2}|./us', $value, $matches);
+
+        if ($result === false || \preg_last_error() !== \PREG_NO_ERROR) {
+            throw self::invalidVariable($expression, $name, 'prefix modifier requires valid UTF-8');
+        }
+
+        return \implode('', \array_slice($matches[0], 0, $length));
     }
 
     private static function encodeValue(string $value, bool $allowReserved): string
