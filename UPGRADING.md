@@ -23,6 +23,28 @@ Invalid template syntax includes malformed braces, unsupported operators,
 invalid variable names, invalid modifiers, repeated operator-like variable
 specifiers, and prefix modifiers applied to list or map values.
 
+#### Literal Text
+
+Literal text outside expressions is now validated and encoded using RFC 6570
+literal rules, with apostrophes preserved for compatibility with upstream RFC
+example fixtures. Invalid literal characters, including spaces, raw or malformed
+`%` sequences, double quotes, controls, `<`, `>`, backslash, caret, backtick,
+and pipe, now throw `InvalidArgumentException`. Valid non-ASCII literal text
+must be valid UTF-8 and is pct-encoded during expansion. Templates without
+expressions are also validated and encoded.
+
+Before:
+
+```php
+UriTemplate::expand('/search terms/{id}', ['id' => 1]);
+```
+
+After:
+
+```php
+UriTemplate::expand('/search%20terms/{id}', ['id' => 1]);
+```
+
 #### Variable Names
 
 Variable names in templates must use RFC 6570 syntax: ASCII letters, ASCII
