@@ -79,9 +79,10 @@ nested null values, recursive arrays, and arrays nested too deeply.
 
 Prefix modifiers, such as `{var:3}`, are only valid for scalar or stringable
 values. Applying a prefix modifier to a list or map now throws
-`InvalidArgumentException`. Prefix lengths are counted as Unicode characters and
-existing pct-encoded triplets, not bytes. A prefixed string value must be valid
-UTF-8, otherwise expansion throws `InvalidArgumentException`.
+`InvalidArgumentException`. Prefix lengths are counted as Unicode code points
+and existing pct-encoded triplets, not bytes or visual grapheme clusters. A
+prefixed string value must be valid UTF-8, otherwise expansion throws
+`InvalidArgumentException`.
 
 #### Reserved Expansion
 
