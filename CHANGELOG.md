@@ -4,7 +4,7 @@ All notable changes to `uri-template` will be documented in this file.
 
 Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) principles.
 
-## v1.0.6 - Unreleased
+## v1.0.6 - 2026-05-23
 
 ### Fixed
 - Fixed empty nested arrays adding empty components to exploded query expansions
