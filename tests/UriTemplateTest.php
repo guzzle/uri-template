@@ -599,9 +599,7 @@ final class UriTemplateTest extends TestCase
      */
     public function testParsesExpressions(string $exp, array $data): void
     {
-        $template = new UriTemplate();
-
-        $class = new \ReflectionClass($template);
+        $class = new \ReflectionClass(UriTemplate::class);
 
         $method = $class->getMethod('parseExpression');
 
@@ -611,7 +609,7 @@ final class UriTemplateTest extends TestCase
 
         $exp = \substr($exp, 1, -1);
 
-        self::assertSame($data, $method->invokeArgs($template, [$exp]));
+        self::assertSame($data, $method->invokeArgs(null, [$exp]));
     }
 
     public static function nestedQueryKeyEncodingProvider(): array

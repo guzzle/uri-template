@@ -13,6 +13,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Prefix modifiers are now rejected for list and map values
 - Referenced variable values are now validated before expansion
 - Dense zero-indexed arrays are expanded as lists, and sparse or mixed-key arrays are expanded as maps
+- `UriTemplate` is now non-instantiable; use `UriTemplate::expand()` statically
 
 ### Fixed
 - Fixed invalid template expressions being accepted as parameter names in query and path-style parameter expansions
