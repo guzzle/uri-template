@@ -50,10 +50,14 @@ final class UriTemplate
             return $template;
         }
 
+        $callback = self::expandMatchCallback($variables);
+
         /** @var string|null */
         $result = \preg_replace_callback(
             '/\{([^\}]+)\}/',
-            self::expandMatchCallback($variables),
+            static function (array $matches) use ($callback): string {
+                return $callback($matches);
+            },
             $template
         );
 
@@ -67,11 +71,12 @@ final class UriTemplate
     /**
      * @param array<string,mixed> $variables Variables to use in the template expansion
      *
-     * @return \Closure(array<string>): string
+     * @return \Closure(array{0: string, 1: string}): string
      */
     private static function expandMatchCallback(array $variables): \Closure
     {
         return static function (array $matches) use ($variables): string {
+            /** @var array{0: string, 1: string} $matches */
             return self::expandMatch($matches, $variables);
         };
     }
@@ -134,8 +139,8 @@ final class UriTemplate
     /**
      * Process an expansion
      *
-     * @param array<string,mixed> $variables Variables to use in the template expansion
-     * @param string[]            $matches   Matches met in the preg_replace_callback
+     * @param array<string,mixed>         $variables Variables to use in the template expansion
+     * @param array{0: string, 1: string} $matches   Matches met in the preg_replace_callback
      *
      * @return string Returns the replacement string
      */
