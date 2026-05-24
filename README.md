@@ -1,10 +1,8 @@
 # uri-template
 
-A small [RFC 6570](https://datatracker.ietf.org/doc/html/rfc6570) URI
-Template expander for PHP.
-
-It expands URI templates using a variable map and encodes variable values
-according to the template expression type.
+An [RFC 6570](https://datatracker.ietf.org/doc/html/rfc6570) URI Template
+expander for PHP. It expands URI templates using a variable map and encodes
+variable values according to the template expression type.
 
 ## Install
 
