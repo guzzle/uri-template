@@ -32,6 +32,10 @@ final class UriTemplate
         '&' => ['prefix' => '&', 'joiner' => '&', 'query' => true],
     ];
 
+    private function __construct()
+    {
+    }
+
     /**
      * @param array<string,mixed> $variables Variables to use in the template expansion
      *

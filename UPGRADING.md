@@ -396,3 +396,8 @@ UriTemplate::expand('{+id}', ['id' => 'admin%2F']);
 Templates should generally be application-controlled. If templates come from
 users or remote systems, treat them as policy input because template syntax
 controls the structure of the expanded URI.
+
+#### UriTemplate Instantiation
+
+`UriTemplate` now has a private constructor. Use `UriTemplate::expand()`
+statically instead of instantiating the class.
