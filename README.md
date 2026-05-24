@@ -28,37 +28,94 @@ $uri = UriTemplate::expand('/users/{id}{?tab}', [
 ```
 
 The first argument is an RFC 6570 URI template. The second argument is an array
-of variables to use during expansion.
+of variables to use during expansion. Variable map keys must match template
+variable names exactly.
 
-Variable values are encoded during expansion:
+This package supports RFC 6570 simple, reserved, fragment, label, path,
+path-style parameter, query, and query-continuation expansions, including prefix
+and explode modifiers.
+
+Simple expansion encodes reserved URI delimiters in variable values:
 
 ```php
-UriTemplate::expand('/search{?q}', ['q' => 'Hello World!']);
+UriTemplate::expand('/files/{path}', ['path' => 'a/b']);
 
-// /search?q=Hello%20World%21
+// /files/a%2Fb
 ```
 
-Reserved expansion (`{+var}`) and fragment expansion (`{#var}`) preserve URI
-reserved delimiters:
+Use reserved expansion (`{+var}`) when the variable value intentionally contains
+URI delimiters that should remain delimiters in the expanded URI:
 
 ```php
-UriTemplate::expand('{+path}', ['path' => '/foo/bar']);
+UriTemplate::expand('/files/{+path}', ['path' => 'a/b']);
 
-// /foo/bar
+// /files/a/b
 ```
 
-Dense zero-indexed arrays expand as lists:
+Fragment expansion (`{#var}`) prefixes the expanded value with `#` when the
+variable is defined:
 
 ```php
-UriTemplate::expand('/tags{/tags*}', [
-    'tags' => ['red', 'green', 'blue'],
+UriTemplate::expand('/docs{#section}', ['section' => 'part 1']);
+
+// /docs#part%201
+```
+
+Other operators help build common URI components:
+
+```php
+UriTemplate::expand('www{.domain*}', [
+    'domain' => ['example', 'com'],
+]);
+
+// www.example.com
+
+UriTemplate::expand('/users{/id}', ['id' => 123]);
+
+// /users/123
+
+UriTemplate::expand('/users{;role}', ['role' => 'admin']);
+
+// /users;role=admin
+
+UriTemplate::expand('/search{?q,page}', [
+    'q' => 'uri templates',
+    'page' => 2,
+]);
+
+// /search?q=uri%20templates&page=2
+
+UriTemplate::expand('/search?fixed=yes{&page}', ['page' => 2]);
+
+// /search?fixed=yes&page=2
+```
+
+Prefix modifiers select a prefix of a scalar value:
+
+```php
+UriTemplate::expand('/dictionary/{term:1}/{term}', ['term' => 'cat']);
+
+// /dictionary/c/cat
+```
+
+Explode modifiers expand lists and maps item by item:
+
+```php
+UriTemplate::expand('/tags{/tag*}', [
+    'tag' => ['red', 'green', 'blue'],
 ]);
 
 // /tags/red/green/blue
+
+UriTemplate::expand('/tags{?tag*}', [
+    'tag' => ['red', 'green'],
+]);
+
+// /tags?tag=red&tag=green
 ```
 
-Sparse or mixed-key arrays expand as maps. Map order follows PHP array insertion
-order:
+Dense zero-indexed arrays expand as lists. Sparse numeric arrays and mixed-key
+arrays expand as maps. Map order follows PHP array insertion order:
 
 ```php
 UriTemplate::expand('/search{?filter*}', [
@@ -71,8 +128,19 @@ UriTemplate::expand('/search{?filter*}', [
 // /search?status=open&sort=created
 ```
 
+If a sparse array is intended to expand as a list, reindex it before expansion:
+
+```php
+$tag = [1 => 'red', 2 => 'green'];
+
+UriTemplate::expand('/tags{/tag*}', ['tag' => array_values($tag)]);
+
+// /tags/red/green
+```
+
 Nested arrays are supported for exploded query-style expansions, such as
-`{?var*}` and `{&var*}`:
+`{?var*}` and `{&var*}`. They use RFC 3986 query encoding with PHP bracket
+syntax:
 
 ```php
 UriTemplate::expand('/search{?filter*}', [
@@ -88,23 +156,57 @@ UriTemplate::expand('/search{?filter*}', [
 
 Empty nested arrays are omitted from exploded query expansions.
 
+Variable values are encoded during expansion according to the expression type.
+Existing percent-encoded triplets in reserved and fragment expansions are
+preserved, while simple expansion encodes `%` as `%25`:
+
+```php
+UriTemplate::expand('{id}', ['id' => 'admin%2F']);
+
+// admin%252F
+
+UriTemplate::expand('{+id}', ['id' => 'admin%2F']);
+
+// admin%2F
+```
+
 ## Input Contract
 
 `UriTemplate::expand()` expects an RFC 6570 URI template and an array of
-variables.
+variables. Invalid templates or unsupported referenced variable values throw
+`InvalidArgumentException`.
+
+Template variable names may contain ASCII letters, ASCII digits, `_`, valid
+percent-encoded triplets, and dot separators. Percent-encoded triplets are part
+of the variable name and are not decoded for variable lookup.
 
 Supported variable values are:
 
 - `null`, which is treated as undefined and omitted
-- scalars
+- scalars, which are cast to strings
 - objects with `__toString()`
-- lists
-- maps
+- dense zero-indexed lists containing scalar or stringable values
+- maps containing scalar or stringable values
+- nested arrays in maps for exploded query-style expansions
 
-Invalid templates or unsupported variable values throw `InvalidArgumentException`.
+An empty string is a defined value and is expanded. An empty array is treated as
+undefined and omitted. Unsupported values include resources, closures,
+non-stringable objects, recursive arrays, nested `null` values, arrays nested too
+deeply, and nested arrays outside exploded query-style expansions.
 
 Literal text outside expressions must already be valid URI template literal text.
 For example, use `/search%20terms/{id}` instead of `/search terms/{id}`.
+
+Catch `InvalidArgumentException` if templates or values come from outside your
+application:
+
+```php
+try {
+    $uri = UriTemplate::expand($template, $variables);
+} catch (\InvalidArgumentException $e) {
+    // Reject or log the invalid template input.
+}
+```
 
 Templates should generally be application-controlled. If templates come from
 users or remote systems, treat them as policy input and review them before
