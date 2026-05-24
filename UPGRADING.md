@@ -4,6 +4,12 @@ Guzzle URI Template Upgrade Guide
 1.x to 2.0
 ----------
 
+Guzzle URI Template 2.0 is a major release that raises the minimum PHP version
+and validates RFC 6570 template syntax, literal text, variable names, and
+variable values more strictly before expansion. Invalid input now fails with
+`InvalidArgumentException` instead of being partially expanded, returned
+unchanged, or producing PHP warnings.
+
 #### PHP Version and Dependencies
 
 Guzzle URI Template 2.0 requires PHP `^7.4 || ^8.0`. Guzzle URI Template 1.x
@@ -11,6 +17,9 @@ supported PHP `^7.2.5 || ^8.0`.
 
 If your application still supports PHP 7.2 or 7.3, continue using Guzzle URI
 Template 1.x until your minimum PHP version is raised.
+
+Guzzle URI Template 2.0 continues to require `symfony/polyfill-php80:^1.24`, so
+there are no runtime package dependency changes beyond PHP.
 
 #### Input Contract
 
