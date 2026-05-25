@@ -384,7 +384,7 @@ final class UriTemplate
                 $varspec['value'],
                 \sprintf(
                     'expected scalar, stringable object, list, or associative array; got %s',
-                    self::describeType($variable)
+                    \get_debug_type($variable)
                 )
             );
         }
@@ -419,22 +419,6 @@ final class UriTemplate
     }
 
     /**
-     * @param mixed $value
-     */
-    private static function describeType($value): string
-    {
-        if (\is_object($value)) {
-            return 'object('.\get_class($value).')';
-        }
-
-        if (\is_resource($value)) {
-            return 'resource('.\get_resource_type($value).')';
-        }
-
-        return \gettype($value);
-    }
-
-    /**
      * @param array<array-key,mixed> $value
      */
     private static function assertListShape(string $path, array $value, string $expression): void
@@ -453,7 +437,7 @@ final class UriTemplate
             throw self::invalidVariable(
                 $expression,
                 $memberPath,
-                \sprintf('expected scalar or stringable object; got %s', self::describeType($member))
+                \sprintf('expected scalar or stringable object; got %s', \get_debug_type($member))
             );
         }
     }
@@ -491,7 +475,7 @@ final class UriTemplate
             throw self::invalidVariable(
                 $expression,
                 $memberPath,
-                \sprintf('expected scalar%s; got %s', $allowNestedArrays ? ', stringable object, or nested array' : ' or stringable object', self::describeType($member))
+                \sprintf('expected scalar%s; got %s', $allowNestedArrays ? ', stringable object, or nested array' : ' or stringable object', \get_debug_type($member))
             );
         }
     }
@@ -524,7 +508,7 @@ final class UriTemplate
             throw self::invalidVariable(
                 $expression,
                 $memberPath,
-                \sprintf('expected scalar or nested array; got %s', self::describeType($member))
+                \sprintf('expected scalar or nested array; got %s', \get_debug_type($member))
             );
         }
     }
