@@ -12,6 +12,13 @@ Via Composer
 composer require guzzlehttp/uri-template
 ```
 
+## Version Guidance
+
+| Version | Status       | PHP Version  |
+|---------|--------------|--------------|
+| 2.x     | Experimental | >=7.4,<8.6   |
+| 1.x     | Latest       | >=7.2.5,<8.6 |
+
 ## Usage
 
 ```php
