@@ -2,7 +2,7 @@
 
 `guzzlehttp/uri-template` expands [RFC 6570](https://datatracker.ietf.org/doc/html/rfc6570) URI templates in PHP. It turns templates such as `/users/{id}{?tab}` into concrete URI strings using values from an array.
 
-Use this package when an API describes paths or links with URI templates. If you only need to send HTTP requests, start with [`guzzlehttp/guzzle`](https://github.com/guzzle/guzzle); install this package directly when your application needs URI template expansion.
+Use this package when an API describes paths or links with URI templates. If you only need to send HTTP requests, start with [`guzzlehttp/guzzle`](https://github.com/guzzle/guzzle/blob/8.0/README.md); install this package directly when your application needs URI template expansion.
 
 ## Installation
 
@@ -35,7 +35,7 @@ The first argument is an RFC 6570 URI template. The second argument is an array 
 
 ## Documentation
 
-- [Usage Examples](docs/usage.md)
+- [URI Template Usage](docs/uri-template-usage.md)
 - [Input Contract](docs/input-contract.md)
 - [Upgrade Guide](UPGRADING.md)
 - [Changelog](CHANGELOG.md)
