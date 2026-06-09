@@ -35,10 +35,9 @@ The first argument is an RFC 6570 URI template. The second argument is an array 
 
 ## Documentation
 
-- [Full documentation](docs/index.md)
-- [Usage examples](docs/index.md#usage)
-- [Input contract](docs/index.md#input-contract)
-- [Upgrade guide](UPGRADING.md)
+- [Usage Examples](docs/usage.md)
+- [Input Contract](docs/input-contract.md)
+- [Upgrade Guide](UPGRADING.md)
 - [Changelog](CHANGELOG.md)
 
 ## Testing
