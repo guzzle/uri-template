@@ -34,7 +34,7 @@ extension operators are not supported and are rejected.
 | `;` | Path-style parameter expansion | Supported |
 | `?` | Form-style query expansion | Supported |
 | `&` | Form-style query continuation | Supported |
-| `=`, `,`, `!`, `@`, `|` | Reserved extension operators | Unsupported, rejected |
+| `=`, `,`, `!`, `@`, `\|` | Reserved extension operators | Unsupported, rejected |
 
 Simple expansion encodes reserved URI delimiters in variable values:
 
