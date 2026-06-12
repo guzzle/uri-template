@@ -188,14 +188,14 @@ final class UriTemplate
                         // same way as simple string values, so reserved
                         // expansion and fragment expansion keep reserved
                         // characters and pct-encoded triplets in names.
-                        $key = self::encodeValue($rawKey, $allowReserved);
+                        $key = self::encodeValue($rawKey, $allowReserved, $matches[1], $value['value']);
                         $isNestedArray = \is_array($var);
                     } else {
                         $isNestedArray = false;
                     }
 
                     if (!$isNestedArray) {
-                        $var = self::encodeValue((string) $var, $allowReserved);
+                        $var = self::encodeValue((string) $var, $allowReserved, $matches[1], $value['value']);
                     }
 
                     if ($value['modifier'] === '*') {
@@ -241,7 +241,7 @@ final class UriTemplate
                     $variable = self::prefixValue((string) $variable, $value['position'], $matches[1], $value['value']);
                 }
 
-                $expanded = self::encodeValue((string) $variable, $allowReserved);
+                $expanded = self::encodeValue((string) $variable, $allowReserved, $matches[1], $value['value']);
             }
 
             if ($actuallyUseQuery) {
@@ -500,7 +500,19 @@ final class UriTemplate
         foreach ($value as $key => $member) {
             $memberPath = \sprintf('%s[%s]', $path, (string) $key);
 
-            if ($member === null || \is_scalar($member)) {
+            if (\is_string($key) && \preg_match('//u', $key) !== 1) {
+                throw self::invalidVariable($expression, $memberPath, 'variable values must be valid UTF-8');
+            }
+
+            if ($member === null) {
+                continue;
+            }
+
+            if (\is_scalar($member)) {
+                if (\is_string($member) && \preg_match('//u', $member) !== 1) {
+                    throw self::invalidVariable($expression, $memberPath, 'variable values must be valid UTF-8');
+                }
+
                 continue;
             }
 
@@ -628,10 +640,16 @@ final class UriTemplate
         return \preg_match('/\A(?:[\x{A0}-\x{D7FF}\x{E000}-\x{FDCF}\x{FDF0}-\x{FFEF}]|[\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}\x{F0000}-\x{FFFFD}\x{100000}-\x{10FFFD}])\z/u', $char) === 1;
     }
 
-    private static function encodeValue(string $value, bool $allowReserved): string
+    private static function encodeValue(string $value, bool $allowReserved, string $expression, string $name): string
     {
         if ($value === '') {
             return '';
+        }
+
+        // Spec section 1.6: values are encoded as UTF-8 before pct-encoding,
+        // so byte sequences that are not valid UTF-8 cannot be expanded.
+        if (\preg_match('//u', $value) !== 1) {
+            throw self::invalidVariable($expression, $name, 'variable values must be valid UTF-8');
         }
 
         $matches = [];
