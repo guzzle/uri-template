@@ -16,6 +16,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - `UriTemplate` is now non-instantiable; use `UriTemplate::expand()` statically
 - Nested null values in lists and maps are now treated as undefined members and omitted
 - Variable values must now be valid UTF-8 and invalid byte sequences throw `InvalidArgumentException`
+- Booleans now expand as `1` and `0` at every nesting level
 
 ### Fixed
 - Fixed invalid template expressions being accepted as parameter names in query and path-style expansions

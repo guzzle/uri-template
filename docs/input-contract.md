@@ -35,6 +35,8 @@ Supported variable values are:
 - maps containing scalar or stringable values
 - nested arrays in maps for exploded query-style expansions, with scalar leaves
 
+Booleans expand as `1` and `0` at every nesting level.
+
 An empty string is a defined value and is expanded. An empty array is treated as
 undefined and omitted. Missing variables and variables set to `null` are treated
 as undefined and omitted.
