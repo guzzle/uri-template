@@ -8,6 +8,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 
 ### Fixed
 - Fixed the operator's leading character being omitted when defined variables expand to empty strings
+- Fixed non-finite float values emitting coercion warnings on PHP 8.5
 
 ## v1.0.6 - 2026-05-23
 
