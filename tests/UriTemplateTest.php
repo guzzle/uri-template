@@ -136,6 +136,27 @@ final class UriTemplateTest extends TestCase
         self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
 
+    public static function nonFiniteFloatProvider(): array
+    {
+        return [
+            'nan' => ['{x}', ['x' => \NAN], 'NAN'],
+            'infinity' => ['{x}', ['x' => \INF], 'INF'],
+            'negative infinity' => ['{x}', ['x' => -\INF], '-INF'],
+            'nan prefix' => ['{x:2}', ['x' => \NAN], 'NA'],
+            'nan in list' => ['{x}', ['x' => [\NAN, 'v']], 'NAN,v'],
+            'infinity in exploded map' => ['{?x*}', ['x' => ['a' => \INF]], '?a=INF'],
+            'nan in nested query map' => ['{?x*}', ['x' => ['a' => ['b' => \NAN]]], '?a%5Bb%5D=NAN'],
+        ];
+    }
+
+    /**
+     * @dataProvider nonFiniteFloatProvider
+     */
+    public function testExpandsNonFiniteFloats(string $template, array $variables, string $expansion): void
+    {
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
+    }
+
     public static function reservedExpansionPctTripletProvider(): array
     {
         return [
