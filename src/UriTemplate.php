@@ -530,6 +530,10 @@ final class UriTemplate
     private static function assertVariableShape(array $varspec, $variable, string $expression, string $operator): void
     {
         if (self::isScalarLike($variable)) {
+            if (\is_float($variable) && !\is_finite($variable)) {
+                throw self::invalidVariable($expression, $varspec['value'], 'non-finite floats are not supported');
+            }
+
             return;
         }
 
@@ -582,6 +586,10 @@ final class UriTemplate
             $memberPath = \sprintf('%s[%d]', $path, $index);
 
             if ($member === null || self::isScalarLike($member)) {
+                if (\is_float($member) && !\is_finite($member)) {
+                    throw self::invalidVariable($expression, $memberPath, 'non-finite floats are not supported');
+                }
+
                 continue;
             }
 
@@ -611,6 +619,10 @@ final class UriTemplate
             $memberPath = \sprintf('%s[%s]', $path, (string) $key);
 
             if ($member === null || self::isScalarLike($member)) {
+                if (\is_float($member) && !\is_finite($member)) {
+                    throw self::invalidVariable($expression, $memberPath, 'non-finite floats are not supported');
+                }
+
                 continue;
             }
 
@@ -654,6 +666,10 @@ final class UriTemplate
             if (\is_scalar($member)) {
                 if (\is_string($member) && \preg_match('//u', $member) !== 1) {
                     throw self::invalidVariable($expression, $memberPath, 'variable values must be valid UTF-8');
+                }
+
+                if (\is_float($member) && !\is_finite($member)) {
+                    throw self::invalidVariable($expression, $memberPath, 'non-finite floats are not supported');
                 }
 
                 continue;

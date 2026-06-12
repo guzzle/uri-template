@@ -72,8 +72,8 @@ UriTemplate::expand('{name:3}', ['name' => 'value']);
 ```
 
 Validate variable maps before expansion if they contain user-provided values.
-Unsupported resources, closures, non-stringable objects, and unsupported nested
-arrays now throw `InvalidArgumentException`.
+Unsupported resources, closures, non-stringable objects, non-finite floats, and
+unsupported nested arrays now throw `InvalidArgumentException`.
 
 Apply defaults before expansion instead of using non-RFC template extension
 syntax:
@@ -254,7 +254,9 @@ required, or `null` to omit the variable.
 Floats always expand with `.` as the decimal separator. Guzzle URI Template 1.x
 followed the `LC_NUMERIC` locale on PHP versions before 8.0, so a process that
 had called `setlocale()` with a comma-decimal locale such as `de_DE` could
-expand `3.5` as `3%2C5`.
+expand `3.5` as `3%2C5`. Non-finite floats are not supported: `INF`, `-INF`,
+and `NAN` now throw `InvalidArgumentException` instead of expanding as literal
+text.
 
 ```php
 UriTemplate::expand('/search{?q,page}', [
