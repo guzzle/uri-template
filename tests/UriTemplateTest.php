@@ -766,6 +766,7 @@ final class UriTemplateTest extends TestCase
             'nested array in unexploded map' => ['{?x}', ['x' => ['a' => ['b' => 'c']]]],
             'nested array in non-query exploded map' => ['{/x*}', ['x' => ['a' => ['b' => 'c']]]],
             'nested object in query extension' => ['{?x*}', ['x' => ['a' => ['b' => new \stdClass()]]]],
+            'nested stringable object in query extension' => ['{?x*}', ['x' => ['a' => ['b' => new StringableValue('ok')]]]],
             'invalid utf-8 scalar' => ['{x}', ['x' => "\xC3"]],
             'invalid utf-8 reserved scalar' => ['{+x}', ['x' => "\xC3"]],
             'invalid utf-8 list member' => ['{x}', ['x' => ['ok', "\xC3"]]],
@@ -789,6 +790,17 @@ final class UriTemplateTest extends TestCase
     public function testRejectsInvalidVariableShapes(string $template, array $variables): void
     {
         $this->assertInvalidTemplate($template, $variables);
+    }
+
+    public function testRejectsStringableLeavesInNestedQueryArrays(): void
+    {
+        try {
+            UriTemplate::expand('{?x*}', ['x' => ['a' => ['b' => new StringableValue('ok')]]]);
+            self::fail('Expected InvalidArgumentException was not thrown.');
+        } catch (\InvalidArgumentException $e) {
+            self::assertStringContainsString('variable "x[a][b]"', $e->getMessage());
+            self::assertStringContainsString('expected scalar or nested array', $e->getMessage());
+        }
     }
 
     public function testIgnoresUnusedInvalidVariableShapes(): void
