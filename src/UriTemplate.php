@@ -798,7 +798,16 @@ final class UriTemplate
         $result = \preg_match_all('/%[0-9A-Fa-f]{2}|./us', $literal, $matches, \PREG_OFFSET_CAPTURE);
 
         if ($result === false || \preg_last_error() !== \PREG_NO_ERROR) {
-            throw self::invalidTemplate($baseOffset, 'literal text must be valid UTF-8');
+            if (\preg_last_error() === \PREG_BAD_UTF8_ERROR) {
+                throw self::invalidTemplate(
+                    $baseOffset + self::validUtf8PrefixLength($literal),
+                    'literal text must be valid UTF-8'
+                );
+            }
+
+            // A PCRE engine failure, such as an exhausted resource limit, is
+            // not a template syntax error.
+            throw new \RuntimeException(\sprintf('Unable to process template: %s', \preg_last_error_msg()));
         }
 
         $encoded = '';
@@ -844,6 +853,25 @@ final class UriTemplate
         }
 
         return $encoded;
+    }
+
+    /**
+     * Count the bytes of the longest well-formed UTF-8 prefix.
+     *
+     * Mirrors the UTF8-char grammar of RFC 3629 section 4 byte by byte so
+     * the reported template offset identifies the first invalid byte rather
+     * than the start of the enclosing literal segment.
+     */
+    private static function validUtf8PrefixLength(string $value): int
+    {
+        $matches = [];
+        $result = \preg_match(
+            '/\A(?:[\x00-\x7F]|[\xC2-\xDF][\x80-\xBF]|\xE0[\xA0-\xBF][\x80-\xBF]|[\xE1-\xEC][\x80-\xBF]{2}|\xED[\x80-\x9F][\x80-\xBF]|[\xEE-\xEF][\x80-\xBF]{2}|\xF0[\x90-\xBF][\x80-\xBF]{2}|[\xF1-\xF3][\x80-\xBF]{3}|\xF4[\x80-\x8F][\x80-\xBF]{2})*+/',
+            $value,
+            $matches
+        );
+
+        return $result === 1 ? \strlen($matches[0]) : 0;
     }
 
     private static function isAllowedAsciiLiteral(string $char): bool

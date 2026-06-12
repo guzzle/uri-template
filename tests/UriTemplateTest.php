@@ -227,6 +227,37 @@ final class UriTemplateTest extends TestCase
     }
 
     /**
+     * @return array<string,array{0:string, 1:int}>
+     */
+    public static function invalidUtf8LiteralOffsetProvider(): array
+    {
+        return [
+            'leading invalid byte' => ["\xC3foo", 0],
+            'invalid byte after ascii' => ["foo\xC3bar", 3],
+            'invalid byte after multibyte literal' => ["caf\xC3\xA9\xC3", 5],
+            'overlong encoding' => ["foo\xC0\xAFbar", 3],
+            'truncated multibyte at end' => ["abc\xE2\x82", 3],
+            'invalid byte after expression' => ["/{id}/bad\xC3", 9],
+        ];
+    }
+
+    /**
+     * @dataProvider invalidUtf8LiteralOffsetProvider
+     */
+    public function testReportsExactOffsetsForInvalidUtf8Literals(string $template, int $offset): void
+    {
+        try {
+            UriTemplate::expand($template, ['id' => 'a']);
+            self::fail('Expected InvalidArgumentException was not thrown.');
+        } catch (\InvalidArgumentException $e) {
+            self::assertSame(
+                \sprintf('Invalid URI template at offset %d: literal text must be valid UTF-8.', $offset),
+                $e->getMessage()
+            );
+        }
+    }
+
+    /**
      * @return array<string,array{0:string, 1:array<string,mixed>, 2:string}>
      */
     public static function reservedExpansionPctTripletProvider(): array
