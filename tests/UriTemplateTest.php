@@ -36,6 +36,7 @@ final class UriTemplateTest extends TestCase
             'empty_member_list' => [''],
             'mixed_list' => ['red', ''],
             'kv_empty' => ['a' => '', 'b' => 'x'],
+            'reserved_keys' => ['a/b' => 'c/d', 'x%20y' => 'v'],
         ];
 
         return \array_map(static function (array $t) use ($variables): array {
@@ -130,6 +131,11 @@ final class UriTemplateTest extends TestCase
             ['{;kv_empty*}',        ';a;b=x'],
             ['{?kv_empty*}',        '?a=&b=x'],
             ['X{.kv_empty*}',       'X.a=.b=x'],
+            ['{+reserved_keys}',    'a/b,c/d,x%20y,v'],
+            ['{+reserved_keys*}',   'a/b=c/d,x%20y=v'],
+            ['{#reserved_keys}',    '#a/b,c/d,x%20y,v'],
+            ['{#reserved_keys*}',   '#a/b=c/d,x%20y=v'],
+            ['{?reserved_keys*}',   '?a%2Fb=c%2Fd&x%2520y=v'],
             // Test that missing expansions are skipped
             ['test{&missing*}',     'test'],
             // Test that multiple expansions can be set
@@ -480,6 +486,7 @@ final class UriTemplateTest extends TestCase
             'list' => ['{/x*}', ['x' => ['red', 'green']], '/red/green'],
             'map' => ['{?x*}', ['x' => ['a' => 'b']], '?a=b'],
             'nested exploded map extension' => ['{?x*}', ['x' => ['a' => ['b' => 'c']]], '?a%5Bb%5D=c'],
+            'reserved key encoding collision keeps both pairs' => ['{+x*}', ['x' => ['a b' => '1', 'a%20b' => '2']], 'a%20b=1,a%20b=2'],
         ];
     }
 

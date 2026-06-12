@@ -20,6 +20,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Fixed prefix modifiers counting bytes instead of Unicode code points and pct-encoded triplets
 - Fixed unsupported variable shapes producing PHP warnings, conversion errors, or lossy `Array` output
 - Fixed path-style parameter explode rendering empty members as `name=` instead of bare `name`
+- Fixed map keys not using the operator's allow set under reserved and fragment expansion
 
 ### Removed
 - Dropped support for PHP 7.2 and 7.3
