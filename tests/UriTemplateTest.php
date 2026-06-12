@@ -137,7 +137,12 @@ final class UriTemplateTest extends TestCase
             ['{&mixed_list*}',      '&mixed_list=red&mixed_list='],
             ['{;kv_empty*}',        ';a;b=x'],
             ['{?kv_empty*}',        '?a=&b=x'],
+            ['{&kv_empty*}',        '&a=&b=x'],
+            ['{kv_empty*}',         'a=,b=x'],
+            ['{+kv_empty*}',        'a=,b=x'],
+            ['{#kv_empty*}',        '#a=,b=x'],
             ['X{.kv_empty*}',       'X.a=.b=x'],
+            ['{/kv_empty*}',        '/a=/b=x'],
             ['{+reserved_keys}',    'a/b,c/d,x%20y,v'],
             ['{+reserved_keys*}',   'a/b=c/d,x%20y=v'],
             ['{#reserved_keys}',    '#a/b,c/d,x%20y,v'],
@@ -436,6 +441,32 @@ final class UriTemplateTest extends TestCase
         self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
 
+    /**
+     * @return array<string,array{0:string, 1:array<string,mixed>, 2:string}>
+     */
+    public static function unicodeNormalizationProvider(): array
+    {
+        return [
+            // RFC 6570 section 1.6 leaves NFC normalization of user-provided
+            // values to the caller, so canonically equivalent inputs differ.
+            'nfd value passes through' => ['{var}', ['var' => "e\xCC\x81"], 'e%CC%81'],
+            'nfc value passes through' => ['{var}', ['var' => "\xC3\xA9"], '%C3%A9'],
+            'nfd literal passes through' => ["e\xCC\x81/{var}", ['var' => 'v'], 'e%CC%81/v'],
+            'prefix splits decomposed sequence' => ['{var:1}', ['var' => "e\xCC\x81f"], 'e'],
+            'nfd map member passes through' => ['{?x*}', ['x' => ['k' => "e\xCC\x81"]], '?k=e%CC%81'],
+        ];
+    }
+
+    /**
+     * @dataProvider unicodeNormalizationProvider
+     *
+     * @param array<string,mixed> $variables
+     */
+    public function testDoesNotNormalizeUnicode(string $template, array $variables, string $expansion): void
+    {
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
+    }
+
     public function testRejectsInvalidUtf8PrefixValues(): void
     {
         $this->assertInvalidTemplate('{var:1}', ['var' => "\xC3"]);
@@ -557,6 +588,12 @@ final class UriTemplateTest extends TestCase
             'query prefix on all null map' => ['{?x:2}', ['x' => ['a' => null]], ''],
             'label prefix on all null map' => ['X{.x:1}', ['x' => ['a' => null]], 'X'],
             'remaining variables still expand' => ['{x:1,y}', ['x' => ['a' => null], 'y' => 'v'], 'v'],
+            'all null list path' => ['{/x}', ['x' => [null]], ''],
+            'all null list query' => ['{?x}', ['x' => [null]], ''],
+            'all null list exploded query' => ['{?x*}', ['x' => [null]], ''],
+            'all null list multiple members' => ['{?l}', ['l' => [null, null]], ''],
+            'all null map query' => ['{?m}', ['m' => ['k' => null]], ''],
+            'all null list beside defined variable' => ['{/x,y}', ['x' => [null], 'y' => 'z'], '/z'],
         ];
     }
 
@@ -919,6 +956,55 @@ final class UriTemplateTest extends TestCase
      * @dataProvider emptyNestedQueryArrayProvider
      */
     public function testSkipsEmptyNestedQueryArrays(string $template, array $variables, string $expansion): void
+    {
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
+    }
+
+    /**
+     * @return array<string,array{0:string, 1:array<string,mixed>, 2:string}>
+     */
+    public static function emptyStringKeyNestedQueryArrayProvider(): array
+    {
+        return [
+            'top-level empty-string key with nested-array value' => [
+                '{?x*}',
+                ['x' => ['' => ['a' => 'v']]],
+                '?%5Ba%5D=v',
+            ],
+            'top-level empty-string key with deeper nesting' => [
+                '{?x*}',
+                ['x' => ['' => ['a' => ['b' => 'v']]]],
+                '?%5Ba%5D%5Bb%5D=v',
+            ],
+            'continuation operator top-level empty-string key' => [
+                '{&x*}',
+                ['x' => ['' => ['a' => 'v']]],
+                '&%5Ba%5D=v',
+            ],
+            'top-level empty-string key with scalar value' => [
+                '{?x*}',
+                ['x' => ['' => 'v']],
+                '?=v',
+            ],
+            'top-level empty-string key with empty nested array' => [
+                '{?x*}',
+                ['x' => ['' => []]],
+                '',
+            ],
+            'nested empty-string key append syntax' => [
+                '{?x*}',
+                ['x' => ['a' => ['' => 'v']]],
+                '?a%5B%5D=v',
+            ],
+        ];
+    }
+
+    /**
+     * @dataProvider emptyStringKeyNestedQueryArrayProvider
+     *
+     * @param array<string,mixed> $variables
+     */
+    public function testExpandsEmptyStringKeysInNestedQueryArrays(string $template, array $variables, string $expansion): void
     {
         self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }

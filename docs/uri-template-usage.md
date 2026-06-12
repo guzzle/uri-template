@@ -160,7 +160,9 @@ UriTemplate::expand('/search{?filter*}', [
 
 Empty nested arrays are omitted from exploded query expansions. `null` members
 inside lists and maps are treated as undefined members and omitted, like
-top-level `null`.
+top-level `null`. A list or map whose members are all `null` is treated as
+undefined, as described in the [specification conformance
+notes](#specification-conformance-notes).
 
 Variable values are encoded during expansion according to the expression type.
 Existing percent-encoded triplets in reserved and fragment expansions are
@@ -217,6 +219,39 @@ emptiness before its members are joined, so `{;l}` expanded with
 test the comma-joined member string instead and omit the `=`, so path-style
 expansions of composite values whose members all expand empty can differ
 between libraries.
+
+Exploded map members with empty-string values render as `name=` under the
+simple, reserved (`+`), fragment (`#`), label (`.`), and path segment (`/`)
+operators. RFC 6570 contradicts itself for these operators: the normative
+prose in section 3.2.1 appends each exploded pair as "name=value" or, "if the
+value is the empty string and the expression type does not indicate form-style
+parameters", simply "name", while the non-normative appendix A algorithm
+appends every pair with a defined value as "name=value", and no erratum
+resolves the conflict. This library follows the appendix A rendering, matching
+other implementations. The named operators agree under both readings, with `;`
+following the section 3.2.1 prose via its ifemp rule, so `{;x*}` with an
+empty-string member produces a bare name.
+
+A list or map whose members are all `null` is treated as a wholly undefined
+variable, so it is omitted together with the operator's first character unless
+another variable in the expression is defined. RFC 6570 section 2.3 states
+this rule only for associative arrays, which are "considered undefined if the
+array contains zero members or if all member names in the array are associated
+with undefined values"; a list is called undefined only "if the list contains
+zero members". This library maps `null` members to undefined members, and
+skipping every undefined member leaves a list with zero members, so the same
+rule applies to lists.
+
+No Unicode normalization is applied to templates or variable values. RFC 6570
+section 1.6 states that a value provided by a user "SHOULD be normalized as
+Normalization Form C" (NFC) prior to expansion, while a server-provided value
+can be assumed to already be in the form the server expects. This library
+cannot know where a value came from, so normalization is left to the caller,
+and canonically equivalent inputs expand to different URIs: the decomposed
+value `"e\u{0301}"` expands to `e%CC%81`, while the precomposed value
+`"\u{00E9}"` expands to `%C3%A9`. Normalize user-entered text, for example
+with ext-intl's `Normalizer::normalize($value, Normalizer::FORM_C)`, before
+expansion.
 
 ## Related
 
