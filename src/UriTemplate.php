@@ -162,10 +162,6 @@ final class UriTemplate
 
             $variable = $variables[$value['value']];
 
-            if (\is_array($variable) && $variable === []) {
-                continue;
-            }
-
             self::assertVariableShape($value, $variable, $matches[1], $parsed['operator']);
 
             $actuallyUseQuery = $useQuery;
@@ -387,11 +383,35 @@ final class UriTemplate
     }
 
     /**
+     * Determines if a referenced variable is undefined.
+     *
+     * Spec section 2.3: a list is undefined when it contains zero members,
+     * and a map is undefined when it contains zero members or when all
+     * member names are associated with undefined values. Lists whose
+     * members are all null are treated the same way, like an empty list.
+     * Spec section 3.2.1: undefined variables are ignored by the expansion
+     * process, so they are skipped before varspec shape validation.
+     *
      * @param array<string,mixed> $variables
      */
     private static function isUndefinedVariable(array $variables, string $name): bool
     {
-        return !\array_key_exists($name, $variables) || $variables[$name] === null;
+        if (!\array_key_exists($name, $variables) || $variables[$name] === null) {
+            return true;
+        }
+
+        if (!\is_array($variables[$name])) {
+            return false;
+        }
+
+        /** @var mixed $member */
+        foreach ($variables[$name] as $member) {
+            if ($member !== null) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static function invalidVariable(string $expression, string $path, string $message): \InvalidArgumentException

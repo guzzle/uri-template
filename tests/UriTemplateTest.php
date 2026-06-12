@@ -448,6 +448,7 @@ final class UriTemplateTest extends TestCase
             'reserved map' => ['{+keys:1}', ['keys' => ['semi' => ';']]],
             'matrix map' => ['{;keys:1}', ['keys' => ['semi' => ';']]],
             'list with null member' => ['{x:1}', ['x' => ['red', null]]],
+            'map with null member' => ['{x:1}', ['x' => ['a' => null, 'b' => 'v']]],
         ];
     }
 
@@ -466,6 +467,31 @@ final class UriTemplateTest extends TestCase
         self::assertSame('', UriTemplate::expand('{missing:1}', []));
         self::assertSame('', UriTemplate::expand('{missing:1}', ['missing' => null]));
         self::assertSame('', UriTemplate::expand('{list:1}', ['list' => []]));
+    }
+
+    /**
+     * @return array<string,array{0:string, 1:array<string,mixed>, 2:string}>
+     */
+    public static function allNullCompositeProvider(): array
+    {
+        return [
+            'prefix on all null map' => ['{x:1}', ['x' => ['a' => null]], ''],
+            'prefix on all null list' => ['{x:1}', ['x' => [null]], ''],
+            'path prefix on all null list' => ['{/x:3}', ['x' => [null, null]], ''],
+            'query prefix on all null map' => ['{?x:2}', ['x' => ['a' => null]], ''],
+            'label prefix on all null map' => ['X{.x:1}', ['x' => ['a' => null]], 'X'],
+            'remaining variables still expand' => ['{x:1,y}', ['x' => ['a' => null], 'y' => 'v'], 'v'],
+        ];
+    }
+
+    /**
+     * @dataProvider allNullCompositeProvider
+     *
+     * @param array<string,mixed> $variables
+     */
+    public function testTreatsAllNullCompositesAsUndefined(string $template, array $variables, string $expansion): void
+    {
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
 
     /**
