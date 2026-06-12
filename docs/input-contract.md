@@ -75,10 +75,12 @@ invalid.
 Prefix modifiers are not valid on composite values such as lists or maps, and a
 varspec cannot combine prefix and explode modifiers.
 
-Prefix length counts Unicode characters and existing percent-encoded triplets,
-not bytes. For example, `%2F` counts as one character before the selected prefix
-is encoded for the expression type. Values must be valid UTF-8, as described in
-[values](#values).
+Prefix length counts Unicode characters and existing percent-encoded
+characters, not bytes. For example, `%2F` counts as one character before the
+selected prefix is encoded for the expression type, and consecutive
+percent-encoded triplets that encode one Unicode code point in UTF-8, such as
+`%C3%A9`, also count as one character. Values must be valid UTF-8, as described
+in [values](#values).
 
 ## Nested Query Arrays
 

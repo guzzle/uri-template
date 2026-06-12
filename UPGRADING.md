@@ -209,9 +209,10 @@ UriTemplate::expand('/search{?q}', ['q' => 'default']);
 Prefix modifiers, such as `{var:3}`, are valid only for scalar or stringable
 values. Prefix lengths must be positive integers from `1` through `9999`, with
 no leading zeroes. Prefix lengths are counted as Unicode code points and
-existing pct-encoded triplets, not bytes or visual grapheme clusters. A prefixed
-string value must be valid UTF-8, otherwise expansion throws
-`InvalidArgumentException`.
+existing pct-encoded characters, not bytes or visual grapheme clusters.
+Consecutive pct-encoded triplets that encode one Unicode code point in UTF-8,
+such as `%C3%A9`, count as one character. A prefixed string value must be valid
+UTF-8, otherwise expansion throws `InvalidArgumentException`.
 
 Before:
 

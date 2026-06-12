@@ -405,6 +405,17 @@ final class UriTemplateTest extends TestCase
             'query unicode character' => ['{?var:1}', ['var' => "\xC3\xA9clair"], '?var=%C3%A9'],
             'pct triplet counts as one character' => ['{var:1}', ['var' => '%2Fabc'], '%252F'],
             'reserved pct triplet counts as one character' => ['{+var:1}', ['var' => '%2Fabc'], '%2F'],
+            'simple pct code point counts as one character' => ['{var:1}', ['var' => '%C3%A9llo'], '%25C3%25A9'],
+            'simple pct code point and ascii character' => ['{var:2}', ['var' => '%C3%A9llo'], '%25C3%25A9l'],
+            'reserved pct code point counts as one character' => ['{+var:1}', ['var' => '%C3%A9llo'], '%C3%A9'],
+            'reserved lowercase pct code point' => ['{+var:1}', ['var' => '%c3%a9llo'], '%c3%a9'],
+            'reserved three triplet pct code point' => ['{+var:1}', ['var' => '%E2%82%ACx'], '%E2%82%AC'],
+            'reserved four triplet pct code point' => ['{+var:1}', ['var' => '%F0%9F%92%A9rest'], '%F0%9F%92%A9'],
+            'reserved four triplet pct code point and ascii characters' => ['{+var:3}', ['var' => '%F0%9F%92%A9rest'], '%F0%9F%92%A9re'],
+            'fragment pct code point counts as one character' => ['{#var:1}', ['var' => '%C3%A9llo'], '#%C3%A9'],
+            'query pct code point counts as one character' => ['{?var:1}', ['var' => '%C3%A9llo'], '?var=%25C3%25A9'],
+            'lone lead triplet counts as one character' => ['{+var:2}', ['var' => '%C3xyz'], '%C3x'],
+            'overlong pct sequence counts per triplet' => ['{+var:1}', ['var' => '%E0%80%80'], '%E0'],
         ];
     }
 

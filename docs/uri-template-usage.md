@@ -178,10 +178,14 @@ UriTemplate::expand('{+id}', ['id' => 'admin%2F']);
 
 ## Specification Conformance Notes
 
-Prefix modifiers count existing percent-encoded triplets as one character. RFC
-6570 section 3.2.1 defines a prefix as the "first max-length characters of the
-decoded value" and forbids splitting a multi-octet or percent-encoded sequence.
-For example, `{id:1}` with the value `admin%2F` selects `a`. Several other
+Prefix modifiers count existing percent-encoded characters as one character.
+RFC 6570 section 3.2.1 defines a prefix as the "first max-length characters of
+the decoded value" and forbids splitting a multi-octet or percent-encoded
+sequence, so a run of consecutive percent-encoded triplets that encodes one
+Unicode code point in UTF-8 also counts as one character. For example, `{id:1}`
+with the value `admin%2F` selects `a`, and `{+id:1}` with the value
+`%C3%A9clair` selects `%C3%A9`. Triplets that do not encode a single code
+point, such as a lone lead octet, count as one character each. Several other
 implementations count raw characters instead and can split percent-encoded
 triplets, so prefixed expansions of values containing triplets can differ
 between libraries.
