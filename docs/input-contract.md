@@ -93,8 +93,9 @@ exploded query or query-continuation expression, such as `{?filter*}` or
 
 Nested query arrays must have scalar leaves. Recursive arrays, arrays nested too
 deeply, and nested objects are rejected. Nested `null` values are treated as
-undefined members and omitted. Stringable objects are accepted as direct map
-values, but not as leaves inside nested query arrays.
+undefined members and omitted. Omission happens before member validation, so
+the keys of omitted `null` members are not validated. Stringable objects are
+accepted as direct map values, but not as leaves inside nested query arrays.
 
 Nested query arrays use RFC 3986 query encoding with PHP bracket syntax:
 
@@ -124,6 +125,11 @@ For example, use `/search%20terms/{id}` instead of `/search terms/{id}`.
 `InvalidArgumentException` is thrown for invalid template syntax, unsupported
 operators, invalid variable names, invalid modifiers, invalid literal text, and
 unsupported shapes for variables referenced by the template.
+
+Errors for invalid list and map members identify the member by path, such as
+`x[1]` or `filter[author][name]`. Exception messages are always valid UTF-8:
+when a member path contains invalid byte sequences, bytes outside printable
+ASCII are escaped as `\xHH`.
 
 `RuntimeException` is thrown when the PCRE engine fails while processing a
 template, for example when an extremely long variable name exhausts a PCRE
