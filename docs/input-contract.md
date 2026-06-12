@@ -37,6 +37,17 @@ Supported variable values are:
 
 Booleans expand as `1` and `0` at every nesting level.
 
+Floats expand using PHP's float-to-string conversion with the decimal separator
+normalized to `.`, so output does not depend on the process locale, including on
+PHP 7.4 where the plain cast honors `LC_NUMERIC`. The conversion rounds to the
+`precision` ini setting (`14` by default), so `0.1 + 0.2` expands as `0.3`, and
+uses scientific notation, such as `1.0E+20`, when fixed notation would need more
+significant digits than `precision` allows or the magnitude is below `0.0001`.
+The `+` in an exponent is percent-encoded as `%2B` except under reserved and
+fragment expansion. Non-finite floats expand as the literal strings `INF`,
+`-INF`, and `NAN`. Format floats yourself, for example with `number_format()`
+or `sprintf()`, when a specific decimal representation is required.
+
 An empty string is a defined value and is expanded. An empty array is treated as
 undefined and omitted. Missing variables and variables set to `null` are treated
 as undefined and omitted.
