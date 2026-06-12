@@ -447,6 +447,7 @@ final class UriTemplateTest extends TestCase
             'map simple' => ['{keys:1}', ['keys' => ['semi' => ';']]],
             'reserved map' => ['{+keys:1}', ['keys' => ['semi' => ';']]],
             'matrix map' => ['{;keys:1}', ['keys' => ['semi' => ';']]],
+            'list with null member' => ['{x:1}', ['x' => ['red', null]]],
         ];
     }
 
@@ -487,6 +488,12 @@ final class UriTemplateTest extends TestCase
             'map' => ['{?x*}', ['x' => ['a' => 'b']], '?a=b'],
             'nested exploded map extension' => ['{?x*}', ['x' => ['a' => ['b' => 'c']]], '?a%5Bb%5D=c'],
             'reserved key encoding collision keeps both pairs' => ['{+x*}', ['x' => ['a b' => '1', 'a%20b' => '2']], 'a%20b=1,a%20b=2'],
+            'null list member skipped' => ['{?x*}', ['x' => ['a', null]], '?x=a'],
+            'null map member skipped' => ['{?x*}', ['x' => ['a' => null, 'b' => 'c']], '?b=c'],
+            'null member in simple list' => ['{x}', ['x' => ['red', null, 'blue']], 'red,blue'],
+            'all null map members undefined' => ['X{.x}', ['x' => ['a' => null]], 'X'],
+            'all null list members undefined' => ['{#x}', ['x' => [null]], ''],
+            'null nested query leaf skipped' => ['{?x*}', ['x' => ['a' => ['b' => null, 'c' => 'v']]], '?a%5Bc%5D=v'],
         ];
     }
 
@@ -517,8 +524,6 @@ final class UriTemplateTest extends TestCase
             'nested list in list' => ['{?x}', ['x' => [['a']]]],
             'nested array in unexploded map' => ['{?x}', ['x' => ['a' => ['b' => 'c']]]],
             'nested array in non-query exploded map' => ['{/x*}', ['x' => ['a' => ['b' => 'c']]]],
-            'nested null in list' => ['{?x*}', ['x' => ['a', null]]],
-            'nested null in map' => ['{?x*}', ['x' => ['a' => null]]],
             'nested object in query extension' => ['{?x*}', ['x' => ['a' => ['b' => new \stdClass()]]]],
         ];
     }

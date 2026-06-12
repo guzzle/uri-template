@@ -176,6 +176,12 @@ final class UriTemplate
                 $kvp = [];
                 /** @var mixed $var */
                 foreach ($variable as $key => $var) {
+                    if ($var === null) {
+                        // Spec sections 2.3 and 2.4.2: only members with
+                        // defined values are present in the expansion.
+                        continue;
+                    }
+
                     if ($isAssoc) {
                         $rawKey = (string) $key;
                         // Spec section 3.2.1: pair names are encoded in the
@@ -436,11 +442,7 @@ final class UriTemplate
         foreach ($value as $index => $member) {
             $memberPath = \sprintf('%s[%d]', $path, $index);
 
-            if ($member === null) {
-                throw self::invalidVariable($expression, $memberPath, 'nested null values are not supported');
-            }
-
-            if (self::isScalarLike($member)) {
+            if ($member === null || self::isScalarLike($member)) {
                 continue;
             }
 
@@ -469,11 +471,7 @@ final class UriTemplate
         foreach ($value as $key => $member) {
             $memberPath = \sprintf('%s[%s]', $path, (string) $key);
 
-            if ($member === null) {
-                throw self::invalidVariable($expression, $memberPath, 'nested null values are not supported');
-            }
-
-            if (self::isScalarLike($member)) {
+            if ($member === null || self::isScalarLike($member)) {
                 continue;
             }
 
@@ -502,11 +500,7 @@ final class UriTemplate
         foreach ($value as $key => $member) {
             $memberPath = \sprintf('%s[%s]', $path, (string) $key);
 
-            if ($member === null) {
-                throw self::invalidVariable($expression, $memberPath, 'nested null values are not supported');
-            }
-
-            if (\is_scalar($member)) {
+            if ($member === null || \is_scalar($member)) {
                 continue;
             }
 

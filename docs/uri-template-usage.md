@@ -157,7 +157,9 @@ UriTemplate::expand('/search{?filter*}', [
 // /search?author%5Bname%5D=Ada%20Lovelace
 ```
 
-Empty nested arrays are omitted from exploded query expansions.
+Empty nested arrays are omitted from exploded query expansions. `null` members
+inside lists and maps are treated as undefined members and omitted, like
+top-level `null`.
 
 Variable values are encoded during expansion according to the expression type.
 Existing percent-encoded triplets in reserved and fragment expansions are

@@ -39,13 +39,17 @@ An empty string is a defined value and is expanded. An empty array is treated as
 undefined and omitted. Missing variables and variables set to `null` are treated
 as undefined and omitted.
 
+`null` members inside lists and maps are treated as undefined members and
+omitted, like top-level `null`. A list or map whose members are all `null` is
+treated as undefined and omitted, like an empty array.
+
 Dense zero-indexed arrays expand as lists. Sparse numeric arrays and mixed-key
 arrays expand as maps. Map and list order follows PHP array insertion order.
 
 Unsupported values include resources, closures, non-stringable objects,
-recursive arrays, arrays nested too deeply, nested `null` values, and nested
-arrays outside exploded query-style expansions. Unsupported values are validated
-only when the template references that variable.
+recursive arrays, arrays nested too deeply, and nested arrays outside exploded
+query-style expansions. Unsupported values are validated only when the template
+references that variable.
 
 ## Prefix Modifiers
 
@@ -75,8 +79,9 @@ exploded query or query-continuation expression, such as `{?filter*}` or
 `{&filter*}`.
 
 Nested query arrays must have scalar leaves. Recursive arrays, arrays nested too
-deeply, nested `null` values, and nested objects are rejected. Stringable objects
-are accepted as direct map values, but not as leaves inside nested query arrays.
+deeply, and nested objects are rejected. Nested `null` values are treated as
+undefined members and omitted. Stringable objects are accepted as direct map
+values, but not as leaves inside nested query arrays.
 
 Nested query arrays use RFC 3986 query encoding with PHP bracket syntax:
 

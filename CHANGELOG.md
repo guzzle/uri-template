@@ -14,6 +14,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Referenced variable values are now validated before expansion
 - Dense zero-indexed arrays are expanded as lists, and sparse or mixed-key arrays are expanded as maps
 - `UriTemplate` is now non-instantiable; use `UriTemplate::expand()` statically
+- Nested null values in lists and maps are now treated as undefined members and omitted
 
 ### Fixed
 - Fixed invalid template expressions being accepted as parameter names in query and path-style expansions
