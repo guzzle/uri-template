@@ -195,7 +195,7 @@ final class UriTemplate
                     }
 
                     if (!$isNestedArray) {
-                        $var = self::encodeValue((string) $var, $allowReserved, $matches[1], $value['value']);
+                        $var = self::encodeValue(self::stringifyValue($var), $allowReserved, $matches[1], $value['value']);
                     }
 
                     if ($value['modifier'] === '*') {
@@ -237,11 +237,13 @@ final class UriTemplate
                     $expanded = \implode(',', $kvp);
                 }
             } else {
+                $expanded = self::stringifyValue($variable);
+
                 if ($value['modifier'] === ':' && isset($value['position'])) {
-                    $variable = self::prefixValue((string) $variable, $value['position'], $matches[1], $value['value']);
+                    $expanded = self::prefixValue($expanded, $value['position'], $matches[1], $value['value']);
                 }
 
-                $expanded = self::encodeValue((string) $variable, $allowReserved, $matches[1], $value['value']);
+                $expanded = self::encodeValue($expanded, $allowReserved, $matches[1], $value['value']);
             }
 
             if ($actuallyUseQuery) {
@@ -263,6 +265,24 @@ final class UriTemplate
         }
 
         return $ret;
+    }
+
+    /**
+     * Cast a scalar or stringable variable value to its expansion string.
+     *
+     * Booleans expand as "1" and "0" so that false remains distinguishable
+     * from the empty string and matches the http_build_query semantics used
+     * by the nested query-array extension.
+     *
+     * @param mixed $value
+     */
+    private static function stringifyValue($value): string
+    {
+        if (\is_bool($value)) {
+            return $value ? '1' : '0';
+        }
+
+        return (string) $value;
     }
 
     /**

@@ -477,7 +477,7 @@ final class UriTemplateTest extends TestCase
             'string' => ['{x}', ['x' => 'value'], 'value'],
             'int zero' => ['{x}', ['x' => 0], '0'],
             'float' => ['{x}', ['x' => 37.76], '37.76'],
-            'false' => ['{x}', ['x' => false], ''],
+            'false' => ['{x}', ['x' => false], '0'],
             'true' => ['{x}', ['x' => true], '1'],
             'empty string query' => ['{?x}', ['x' => ''], '?x='],
             'top-level null skipped' => ['{?x,y}', ['x' => null, 'y' => 'yes'], '?y=yes'],
@@ -495,6 +495,10 @@ final class UriTemplateTest extends TestCase
             'all null list members undefined' => ['{#x}', ['x' => [null]], ''],
             'null nested query leaf skipped' => ['{?x*}', ['x' => ['a' => ['b' => null, 'c' => 'v']]], '?a%5Bc%5D=v'],
             'valid multibyte value' => ['{x}', ['x' => "caf\xC3\xA9 \xF0\x9F\x98\x80"], 'caf%C3%A9%20%F0%9F%98%80'],
+            'false in query' => ['{?x}', ['x' => false], '?x=0'],
+            'bools in list' => ['{x}', ['x' => [true, false]], '1,0'],
+            'false in exploded map' => ['{?x*}', ['x' => ['a' => false]], '?a=0'],
+            'bools in nested query map' => ['{?x*}', ['x' => ['a' => ['b' => false, 'c' => true]]], '?a%5Bb%5D=0&a%5Bc%5D=1'],
         ];
     }
 

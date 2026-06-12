@@ -244,9 +244,10 @@ maps. `null` means undefined and is omitted from expansion. Lists and maps may
 contain scalar or stringable values. Dense zero-indexed arrays are expanded as
 lists. Sparse numeric arrays and mixed-key arrays are expanded as maps.
 
-Scalars are cast to strings using PHP's normal casting rules. In particular,
-`true` expands as `1` and `false` expands as an empty string. Use `null` when a
-variable should be omitted.
+Scalars are cast to strings before expansion. `true` expands as `1` and `false`
+expands as `0`, at every nesting level. Guzzle URI Template 1.x expanded
+top-level `false` as an empty string; pass `''` explicitly if that output is
+required, or `null` to omit the variable.
 
 ```php
 UriTemplate::expand('/search{?q,page}', [
