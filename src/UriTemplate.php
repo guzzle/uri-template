@@ -243,7 +243,16 @@ final class UriTemplate
             }
 
             if ($actuallyUseQuery) {
-                $expanded = self::formatPair($value['value'], $expanded, $ifemp);
+                if (\is_array($variable)) {
+                    // Spec sections 2.3 and 3.2.7 and appendix A: emptiness
+                    // is tested on the variable's value before expansion, and
+                    // a defined list or map is never an empty value, so "="
+                    // is appended even when every member expands to the empty
+                    // string.
+                    $expanded = \sprintf('%s=%s', $value['value'], $expanded);
+                } else {
+                    $expanded = self::formatPair($value['value'], $expanded, $ifemp);
+                }
             }
 
             $hasDefinedVariable = true;

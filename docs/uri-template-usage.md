@@ -203,6 +203,15 @@ Variable values must be valid UTF-8, per RFC 6570 section 1.6. Invalid byte
 sequences throw `InvalidArgumentException`, as described in the [input
 contract](input-contract.md#values).
 
+Defined lists and maps are never empty values in named non-exploded
+expansions. RFC 6570 section 2.3 treats a list as undefined only when it
+contains zero members, and the appendix A algorithm tests the value for
+emptiness before its members are joined, so `{;l}` expanded with
+`['l' => ['']]` produces `;l=` rather than `;l`. Several other implementations
+test the comma-joined member string instead and omit the `=`, so path-style
+expansions of composite values whose members all expand empty can differ
+between libraries.
+
 ## Related
 
 - [Input Contract](input-contract.md)

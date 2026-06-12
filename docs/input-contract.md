@@ -43,7 +43,10 @@ as undefined and omitted.
 
 `null` members inside lists and maps are treated as undefined members and
 omitted, like top-level `null`. A list or map whose members are all `null` is
-treated as undefined and omitted, like an empty array.
+treated as undefined and omitted, like an empty array. A list or map with at
+least one defined member is a defined, non-empty value: in named non-exploded
+expansions, `=` follows the name even when every member expands to the empty
+string, so `{;l}` with `['l' => ['']]` expands to `;l=`.
 
 Arrays whose keys are exactly `0` through `n-1` in ascending insertion order
 expand as lists. All other arrays, including reordered, sparse, and mixed-key
