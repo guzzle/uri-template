@@ -442,6 +442,49 @@ final class UriTemplateTest extends TestCase
     }
 
     /**
+     * @return array<string,array{0:string, 1:array<string,mixed>, 2:string}>
+     */
+    public static function invalidUtf8MemberPathProvider(): array
+    {
+        return [
+            'list member' => ['{x}', ['x' => ['ok', "\xC3\x28"]], 'x[1]'],
+            'map value' => ['{?x*}', ['x' => ['a' => "\xC3\x28"]], 'x[a]'],
+            'map key' => ['{?x*}', ['x' => ["\xC3\x28" => 'v']], 'x[\xC3(]'],
+            'nested value' => ['{?x*}', ['x' => ['k' => ['n' => "\xC3\x28"]]], 'x[k][n]'],
+            'nested key' => ['{?x*}', ['x' => ['k' => ["\xC3\x28" => 'v']]], 'x[k][\xC3(]'],
+        ];
+    }
+
+    /**
+     * @dataProvider invalidUtf8MemberPathProvider
+     *
+     * @param array<string,mixed> $variables
+     */
+    public function testReportsMemberPathsForInvalidUtf8(string $template, array $variables, string $path): void
+    {
+        try {
+            UriTemplate::expand($template, $variables);
+            self::fail('Expected InvalidArgumentException was not thrown.');
+        } catch (\InvalidArgumentException $e) {
+            self::assertStringContainsString(\sprintf('variable "%s"', $path), $e->getMessage());
+            // Exception messages must stay valid UTF-8 for consumers that
+            // serialize them, such as json_encode-based loggers.
+            self::assertSame(1, \preg_match('//u', $e->getMessage()));
+        }
+    }
+
+    public function testEscapesInvalidUtf8KeysInShapeErrorMessages(): void
+    {
+        try {
+            UriTemplate::expand('{?x*}', ['x' => ["\xC3\x28" => new \stdClass()]]);
+            self::fail('Expected InvalidArgumentException was not thrown.');
+        } catch (\InvalidArgumentException $e) {
+            self::assertStringContainsString('variable "x[\xC3(]"', $e->getMessage());
+            self::assertSame(1, \preg_match('//u', $e->getMessage()));
+        }
+    }
+
+    /**
      * @return array<string,array{0:string}>
      */
     public static function invalidModifierProvider(): array
@@ -553,6 +596,9 @@ final class UriTemplateTest extends TestCase
             'all null map members undefined' => ['X{.x}', ['x' => ['a' => null]], 'X'],
             'all null list members undefined' => ['{#x}', ['x' => [null]], ''],
             'null nested query leaf skipped' => ['{?x*}', ['x' => ['a' => ['b' => null, 'c' => 'v']]], '?a%5Bc%5D=v'],
+            'null member with invalid utf-8 key skipped' => ['{?x*}', ['x' => ["\xC3\x28" => null, 'kept' => 'v']], '?kept=v'],
+            'nested null member with invalid utf-8 key skipped' => ['{?x*}', ['x' => ['k' => ["\xC3\x28" => null], 'kept' => 'v']], '?kept=v'],
+            'all nested members null with invalid utf-8 key undefined' => ['{?x*}', ['x' => ['k' => ["\xC3\x28" => null]]], ''],
             'valid multibyte value' => ['{x}', ['x' => "caf\xC3\xA9 \xF0\x9F\x98\x80"], 'caf%C3%A9%20%F0%9F%98%80'],
             'false in query' => ['{?x}', ['x' => false], '?x=0'],
             'bools in list' => ['{x}', ['x' => [true, false]], '1,0'],

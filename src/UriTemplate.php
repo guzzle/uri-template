@@ -178,20 +178,22 @@ final class UriTemplate
                         continue;
                     }
 
+                    $memberPath = \sprintf('%s[%s]', $value['value'], (string) $key);
+
                     if ($isAssoc) {
                         $rawKey = (string) $key;
                         // Spec section 3.2.1: pair names are encoded in the
                         // same way as simple string values, so reserved
                         // expansion and fragment expansion keep reserved
                         // characters and pct-encoded triplets in names.
-                        $key = self::encodeValue($rawKey, $allowReserved, $matches[1], $value['value']);
+                        $key = self::encodeValue($rawKey, $allowReserved, $matches[1], $memberPath);
                         $isNestedArray = \is_array($var);
                     } else {
                         $isNestedArray = false;
                     }
 
                     if (!$isNestedArray) {
-                        $var = self::encodeValue(self::stringifyValue($var), $allowReserved, $matches[1], $value['value']);
+                        $var = self::encodeValue(self::stringifyValue($var), $allowReserved, $matches[1], $memberPath);
                     }
 
                     if ($value['modifier'] === '*') {
@@ -436,10 +438,35 @@ final class UriTemplate
     {
         return new \InvalidArgumentException(\sprintf(
             'Invalid URI template variable "%s" in "{%s}": %s.',
-            $path,
+            self::sanitizeVariablePath($path),
             $expression,
             $message
         ));
+    }
+
+    /**
+     * Make a variable member path safe to embed in an exception message.
+     *
+     * Member paths are built from raw array keys, so a path can contain
+     * byte sequences that are not valid UTF-8. Escaping such bytes keeps
+     * the exception message itself valid UTF-8 for consumers that
+     * serialize messages, such as json_encode-based loggers.
+     */
+    private static function sanitizeVariablePath(string $path): string
+    {
+        if (\preg_match('//u', $path) === 1) {
+            return $path;
+        }
+
+        $sanitized = '';
+
+        for ($offset = 0, $length = \strlen($path); $offset < $length; ++$offset) {
+            $ord = \ord($path[$offset]);
+
+            $sanitized .= $ord >= 0x20 && $ord <= 0x7E ? $path[$offset] : \sprintf('\x%02X', $ord);
+        }
+
+        return $sanitized;
     }
 
     /**
@@ -556,14 +583,18 @@ final class UriTemplate
         }
 
         foreach ($value as $key => $member) {
+            if ($member === null) {
+                // Spec sections 2.3 and 2.4.2: only members with defined
+                // values are present in the expansion, so null members are
+                // omitted before their keys are validated, matching the
+                // handling of null members in top-level maps.
+                continue;
+            }
+
             $memberPath = \sprintf('%s[%s]', $path, (string) $key);
 
             if (\is_string($key) && \preg_match('//u', $key) !== 1) {
                 throw self::invalidVariable($expression, $memberPath, 'variable values must be valid UTF-8');
-            }
-
-            if ($member === null) {
-                continue;
             }
 
             if (\is_scalar($member)) {

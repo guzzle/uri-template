@@ -28,6 +28,9 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Fixed PCRE engine failures on very long variable names being reported as invalid template syntax
 - Fixed prefix modifiers splitting Unicode code points encoded as multiple pct-encoded triplets
 - Fixed path-style expansion of composites rendering bare `name` instead of `name=` for empty joined members
+- Fixed invalid UTF-8 errors for list and map members not reporting the member path
+- Fixed exception messages embedding raw invalid UTF-8 bytes from map keys
+- Fixed nested query array members set to `null` being rejected for their keys instead of being omitted
 
 ### Removed
 - Dropped support for PHP 7.2 and 7.3
