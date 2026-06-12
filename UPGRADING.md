@@ -72,8 +72,8 @@ UriTemplate::expand('{name:3}', ['name' => 'value']);
 ```
 
 Validate variable maps before expansion if they contain user-provided values.
-Unsupported resources, closures, non-stringable objects, nested null values, and
-unsupported nested arrays now throw `InvalidArgumentException`.
+Unsupported resources, closures, non-stringable objects, and unsupported nested
+arrays now throw `InvalidArgumentException`.
 
 Apply defaults before expansion instead of using non-RFC template extension
 syntax:
@@ -266,9 +266,12 @@ UriTemplate::expand('/search{?q,page}', [
 Nested arrays in maps are supported for exploded query-style expansions, such as
 `{?var*}` and `{&var*}`, to preserve existing Guzzle URI Template behavior.
 
+`null` members inside lists and maps are treated as undefined and omitted,
+consistent with top-level `null` and RFC 6570 section 2.4.2.
+
 Unsupported values throw `InvalidArgumentException` before expansion. This
 includes resources, closures, non-stringable objects, unsupported nested arrays,
-nested null values, recursive arrays, and arrays nested too deeply.
+recursive arrays, and arrays nested too deeply.
 
 Convert non-stringable objects before expansion:
 
