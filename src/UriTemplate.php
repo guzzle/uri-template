@@ -178,7 +178,11 @@ final class UriTemplate
                 foreach ($variable as $key => $var) {
                     if ($isAssoc) {
                         $rawKey = (string) $key;
-                        $key = \rawurlencode($rawKey);
+                        // Spec section 3.2.1: pair names are encoded in the
+                        // same way as simple string values, so reserved
+                        // expansion and fragment expansion keep reserved
+                        // characters and pct-encoded triplets in names.
+                        $key = self::encodeValue($rawKey, $allowReserved);
                         $isNestedArray = \is_array($var);
                     } else {
                         $isNestedArray = false;
