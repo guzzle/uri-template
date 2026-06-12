@@ -25,6 +25,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Fixed path-style parameter explode rendering empty members as `name=` instead of bare `name`
 - Fixed map keys not using the operator's allow set under reserved and fragment expansion
 - Fixed all-null lists and maps throwing with prefix modifiers instead of being skipped as undefined
+- Fixed PCRE engine failures on very long variable names being reported as invalid template syntax
 
 ### Removed
 - Dropped support for PHP 7.2 and 7.3

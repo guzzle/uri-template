@@ -353,8 +353,17 @@ final class UriTemplate
 
         $matches = [];
         $pattern = '/\A('.self::VARNAME_PATTERN.')(?::([1-9][0-9]{0,3})|(\*))?\z/';
+        $result = \preg_match($pattern, $varspec, $matches);
 
-        if (\preg_match($pattern, $varspec, $matches) !== 1) {
+        if ($result === false) {
+            // A PCRE engine failure, such as an exhausted JIT stack or
+            // backtrack limit on a very long variable name, is not a template
+            // syntax error; spec section 2.3 places no length limit on
+            // variable names.
+            throw new \RuntimeException(\sprintf('Unable to parse variable specifier: %s', \preg_last_error_msg()));
+        }
+
+        if ($result !== 1) {
             throw self::invalidExpression($expression, \sprintf('invalid variable specifier "%s"', $varspec));
         }
 
