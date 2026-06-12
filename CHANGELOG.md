@@ -7,7 +7,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 ## v2.0.0 - Unreleased
 
 ### Changed
-- Invalid URI template syntax now throws `InvalidArgumentException` instead of being partially expanded or returned unchanged
+- Invalid URI template syntax now throws `InvalidArgumentException` instead of being partially expanded
 - Literal template text is now validated, and valid non-ASCII literals are pct-encoded during expansion
 - URI template variable names and modifiers are now validated according to RFC 6570
 - Prefix modifiers are now rejected for list and map values
@@ -16,7 +16,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - `UriTemplate` is now non-instantiable; use `UriTemplate::expand()` statically
 
 ### Fixed
-- Fixed invalid template expressions being accepted as parameter names in query and path-style parameter expansions
+- Fixed invalid template expressions being accepted as parameter names in query and path-style expansions
 - Fixed prefix modifiers counting bytes instead of Unicode code points and pct-encoded triplets
 - Fixed unsupported variable shapes producing PHP warnings, conversion errors, or lossy `Array` output
 
