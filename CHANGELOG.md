@@ -24,6 +24,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Fixed unsupported variable shapes producing PHP warnings, conversion errors, or lossy `Array` output
 - Fixed path-style parameter explode rendering empty members as `name=` instead of bare `name`
 - Fixed map keys not using the operator's allow set under reserved and fragment expansion
+- Fixed all-null lists and maps throwing with prefix modifiers instead of being skipped as undefined
 
 ### Removed
 - Dropped support for PHP 7.2 and 7.3
