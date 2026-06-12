@@ -45,8 +45,9 @@ as undefined and omitted.
 omitted, like top-level `null`. A list or map whose members are all `null` is
 treated as undefined and omitted, like an empty array.
 
-Dense zero-indexed arrays expand as lists. Sparse numeric arrays and mixed-key
-arrays expand as maps. Map and list order follows PHP array insertion order.
+Arrays whose keys are exactly `0` through `n-1` in ascending insertion order
+expand as lists. All other arrays, including reordered, sparse, and mixed-key
+arrays, expand as maps. Map and list order follows PHP array insertion order.
 
 Unsupported values include resources, closures, non-stringable objects,
 recursive arrays, arrays nested too deeply, and nested arrays outside exploded
@@ -107,6 +108,9 @@ UriTemplate::expand('/search{?filter*}', [
 Empty nested arrays are omitted from exploded query expansions. Empty scalar
 values are preserved.
 
+Empty-string keys in nested query arrays produce PHP append syntax
+(`a%5B%5D=v`), which does not round-trip the key.
+
 ## Validation Errors
 
 Literal text outside expressions must already be valid URI template literal text.
@@ -115,6 +119,9 @@ For example, use `/search%20terms/{id}` instead of `/search terms/{id}`.
 `InvalidArgumentException` is thrown for invalid template syntax, unsupported
 operators, invalid variable names, invalid modifiers, invalid literal text, and
 unsupported shapes for variables referenced by the template.
+
+Exceptions thrown by a value object's `__toString()` method propagate unchanged;
+they are not converted to `InvalidArgumentException`.
 
 Catch `InvalidArgumentException` if templates or values come from outside your
 application:

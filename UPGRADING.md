@@ -87,12 +87,12 @@ UriTemplate::expand('/search{?q}', ['q' => $q]);
 #### Literal Text
 
 Literal text outside expressions is now validated and encoded using RFC 6570
-literal rules, with apostrophes preserved for compatibility with upstream RFC
-example fixtures. Invalid literal characters, including spaces, raw or malformed
-`%` sequences, double quotes, controls, `<`, `>`, backslash, caret, backtick,
-and pipe, now throw `InvalidArgumentException`. Valid non-ASCII literal text
-must be valid UTF-8 and is pct-encoded during expansion. Templates without
-expressions are also validated and encoded.
+literal rules; apostrophes are valid literal characters per verified RFC 6570
+erratum 6937. Invalid literal characters, including spaces, raw or malformed `%`
+sequences, double quotes, controls, `<`, `>`, backslash, caret, backtick, and
+pipe, now throw `InvalidArgumentException`. Valid non-ASCII literal text must be
+valid UTF-8 and is pct-encoded during expansion. Templates without expressions
+are also validated and encoded.
 
 Existing valid pct-encoded triplets in literal text are preserved. Raw `%`
 characters and malformed pct-encoded triplets are invalid literal text.
@@ -241,8 +241,9 @@ UriTemplate::expand('{/list*}', [
 
 Supported variable values are `null`, scalars, stringable objects, lists, and
 maps. `null` means undefined and is omitted from expansion. Lists and maps may
-contain scalar or stringable values. Dense zero-indexed arrays are expanded as
-lists. Sparse numeric arrays and mixed-key arrays are expanded as maps.
+contain scalar or stringable values. Arrays whose keys are exactly `0` through
+`n-1` in ascending insertion order are expanded as lists. All other arrays,
+including reordered, sparse, and mixed-key arrays, are expanded as maps.
 
 Scalars are cast to strings before expansion. `true` expands as `1` and `false`
 expands as `0`, at every nesting level. Guzzle URI Template 1.x expanded
@@ -301,9 +302,10 @@ UriTemplate::expand('/events{?date}', [
 
 #### Array Values
 
-PHP arrays are classified by shape. Dense zero-indexed arrays are lists. Sparse
-numeric arrays and mixed-key arrays are maps. This makes expansion deterministic
-and preserves PHP insertion order for maps.
+PHP arrays are classified by shape. Arrays whose keys are exactly `0` through
+`n-1` in ascending insertion order are lists. All other arrays, including
+reordered, sparse, and mixed-key arrays, are maps. This makes expansion
+deterministic and preserves PHP insertion order for maps.
 
 If a sparse array is intended to be a list, reindex it before expansion:
 

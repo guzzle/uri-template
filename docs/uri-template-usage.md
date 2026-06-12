@@ -115,9 +115,10 @@ UriTemplate::expand('/tags{?tag*}', [
 // /tags?tag=red&tag=green
 ```
 
-[Dense zero-indexed arrays](input-contract.md#values) expand as lists. Sparse
-numeric arrays and mixed-key arrays expand as maps. Map order follows PHP array
-insertion order:
+[Arrays whose keys are exactly `0` through `n-1`](input-contract.md#values) in
+ascending insertion order expand as lists. All other arrays, including
+reordered, sparse, and mixed-key arrays, expand as maps. Map order follows PHP
+array insertion order:
 
 ```php
 UriTemplate::expand('/search{?filter*}', [
@@ -174,6 +175,29 @@ UriTemplate::expand('{+id}', ['id' => 'admin%2F']);
 
 // admin%2F
 ```
+
+## Specification Conformance Notes
+
+Prefix modifiers count existing percent-encoded triplets as one character. RFC
+6570 section 3.2.1 defines a prefix as the "first max-length characters of the
+decoded value" and forbids splitting a multi-octet or percent-encoded sequence.
+For example, `{id:1}` with the value `admin%2F` selects `a`. Several other
+implementations count raw characters instead and can split percent-encoded
+triplets, so prefixed expansions of values containing triplets can differ
+between libraries.
+
+Invalid templates and unsupported variable values throw
+`InvalidArgumentException`. RFC 6570 section 3 allows a template processor to
+recover from an error by copying the offending expression into the result, but
+describes such output as "only intended for diagnostic use". This library treats
+these conditions as errors instead of producing diagnostic output.
+
+Booleans expand as `1` and `0` at every nesting level, as described in the
+[input contract](input-contract.md#values).
+
+Variable values must be valid UTF-8, per RFC 6570 section 1.6. Invalid byte
+sequences throw `InvalidArgumentException`, as described in the [input
+contract](input-contract.md#values).
 
 ## Related
 
