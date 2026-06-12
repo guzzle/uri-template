@@ -34,6 +34,8 @@ final class UriTemplateTest extends TestCase
             ],
             'empty_keys' => [],
             'empty_member_list' => [''],
+            'mixed_list' => ['red', ''],
+            'kv_empty' => ['a' => '', 'b' => 'x'],
         ];
 
         return \array_map(static function (array $t) use ($variables): array {
@@ -122,6 +124,12 @@ final class UriTemplateTest extends TestCase
             ['{/empty_member_list*}', '/'],
             ['X{.empty_member_list*}', 'X.'],
             ['{#null,empty_member_list}', '#'],
+            ['{;mixed_list*}',      ';mixed_list=red;mixed_list'],
+            ['{?mixed_list*}',      '?mixed_list=red&mixed_list='],
+            ['{&mixed_list*}',      '&mixed_list=red&mixed_list='],
+            ['{;kv_empty*}',        ';a;b=x'],
+            ['{?kv_empty*}',        '?a=&b=x'],
+            ['X{.kv_empty*}',       'X.a=.b=x'],
             // Test that missing expansions are skipped
             ['test{&missing*}',     'test'],
             // Test that multiple expansions can be set

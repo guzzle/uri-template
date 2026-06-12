@@ -19,17 +19,17 @@ final class UriTemplate
     /**
      * Hash for quick operator lookups.
      *
-     * @var array<string, array{prefix:string, joiner:string, query:bool}>
+     * @var array<string, array{prefix:string, joiner:string, query:bool, ifemp:string}>
      */
     private const OPERATOR_HASH = [
-        '' => ['prefix' => '', 'joiner' => ',', 'query' => false],
-        '+' => ['prefix' => '', 'joiner' => ',', 'query' => false],
-        '#' => ['prefix' => '#', 'joiner' => ',', 'query' => false],
-        '.' => ['prefix' => '.', 'joiner' => '.', 'query' => false],
-        '/' => ['prefix' => '/', 'joiner' => '/', 'query' => false],
-        ';' => ['prefix' => ';', 'joiner' => ';', 'query' => true],
-        '?' => ['prefix' => '?', 'joiner' => '&', 'query' => true],
-        '&' => ['prefix' => '&', 'joiner' => '&', 'query' => true],
+        '' => ['prefix' => '', 'joiner' => ',', 'query' => false, 'ifemp' => ''],
+        '+' => ['prefix' => '', 'joiner' => ',', 'query' => false, 'ifemp' => ''],
+        '#' => ['prefix' => '#', 'joiner' => ',', 'query' => false, 'ifemp' => ''],
+        '.' => ['prefix' => '.', 'joiner' => '.', 'query' => false, 'ifemp' => ''],
+        '/' => ['prefix' => '/', 'joiner' => '/', 'query' => false, 'ifemp' => ''],
+        ';' => ['prefix' => ';', 'joiner' => ';', 'query' => true, 'ifemp' => ''],
+        '?' => ['prefix' => '?', 'joiner' => '&', 'query' => true, 'ifemp' => '='],
+        '&' => ['prefix' => '&', 'joiner' => '&', 'query' => true, 'ifemp' => '='],
     ];
 
     private function __construct()
@@ -151,6 +151,7 @@ final class UriTemplate
         $prefix = self::OPERATOR_HASH[$parsed['operator']]['prefix'];
         $joiner = self::OPERATOR_HASH[$parsed['operator']]['joiner'];
         $useQuery = self::OPERATOR_HASH[$parsed['operator']]['query'];
+        $ifemp = self::OPERATOR_HASH[$parsed['operator']]['ifemp'];
         $allowReserved = $parsed['operator'] === '+' || $parsed['operator'] === '#';
         $hasDefinedVariable = false;
 
@@ -195,37 +196,34 @@ final class UriTemplate
                                 if ($var === '') {
                                     continue;
                                 }
+                            } elseif ($useQuery) {
+                                $var = self::formatPair((string) $key, (string) $var, $ifemp);
                             } else {
                                 $var = \sprintf('%s=%s', (string) $key, (string) $var);
                             }
-                        } elseif ($key > 0 && $actuallyUseQuery) {
-                            $var = \sprintf('%s=%s', $value['value'], (string) $var);
+                        } elseif ($useQuery) {
+                            $var = self::formatPair($value['value'], (string) $var, $ifemp);
                         }
+                    } elseif ($isAssoc) {
+                        // When an associative array is encountered and the
+                        // explode modifier is not set, then the result must be
+                        // a comma separated list of keys followed by their
+                        // respective values.
+                        $var = \sprintf('%s,%s', (string) $key, (string) $var);
                     }
 
-                    /** @var string $var */
-                    $kvp[$key] = $var;
+                    $kvp[] = (string) $var;
                 }
 
                 if ($kvp === []) {
                     continue;
                 } elseif ($value['modifier'] === '*') {
                     $expanded = \implode($joiner, $kvp);
-                    if ($isAssoc) {
-                        // Don't prepend the value name when using the explode
-                        // modifier with an associative array.
-                        $actuallyUseQuery = false;
-                    }
+                    // Spec appendix A: exploded members carry their own name
+                    // (and ifemp handling) above, so the expression-level
+                    // name must not be prepended again.
+                    $actuallyUseQuery = false;
                 } else {
-                    if ($isAssoc) {
-                        // When an associative array is encountered and the
-                        // explode modifier is not set, then the result must be
-                        // a comma separated list of keys followed by their
-                        // respective values.
-                        foreach ($kvp as $k => &$v) {
-                            $v = \sprintf('%s,%s', $k, $v);
-                        }
-                    }
                     $expanded = \implode(',', $kvp);
                 }
             } else {
@@ -237,11 +235,7 @@ final class UriTemplate
             }
 
             if ($actuallyUseQuery) {
-                if ($expanded === '' && $joiner !== '&') {
-                    $expanded = $value['value'];
-                } else {
-                    $expanded = \sprintf('%s=%s', $value['value'], $expanded);
-                }
+                $expanded = self::formatPair($value['value'], $expanded, $ifemp);
             }
 
             $hasDefinedVariable = true;
@@ -259,6 +253,22 @@ final class UriTemplate
         }
 
         return $ret;
+    }
+
+    /**
+     * Format a named (name, value) pair.
+     *
+     * Spec section 3.2.1: a pair whose value is the empty string is rendered
+     * as the name followed by the operator's ifemp string ("=" for the
+     * form-style "?" and "&" operators, nothing for ";").
+     */
+    private static function formatPair(string $name, string $value, string $ifemp): string
+    {
+        if ($value === '') {
+            return $name.$ifemp;
+        }
+
+        return \sprintf('%s=%s', $name, $value);
     }
 
     /**

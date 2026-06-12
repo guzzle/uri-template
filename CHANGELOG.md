@@ -19,6 +19,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Fixed invalid template expressions being accepted as parameter names in query and path-style expansions
 - Fixed prefix modifiers counting bytes instead of Unicode code points and pct-encoded triplets
 - Fixed unsupported variable shapes producing PHP warnings, conversion errors, or lossy `Array` output
+- Fixed path-style parameter explode rendering empty members as `name=` instead of bare `name`
 
 ### Removed
 - Dropped support for PHP 7.2 and 7.3
