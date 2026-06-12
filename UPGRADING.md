@@ -208,9 +208,10 @@ UriTemplate::expand('/search{?q}', ['q' => 'default']);
 
 Prefix modifiers, such as `{var:3}`, are valid only for scalar or stringable
 values. Prefix lengths must be positive integers from `1` through `9999`, with
-no leading zeroes. Prefix lengths are counted as Unicode code points and existing
-pct-encoded triplets, not bytes or visual grapheme clusters. A prefixed string
-value must be valid UTF-8, otherwise expansion throws `InvalidArgumentException`.
+no leading zeroes. Prefix lengths are counted as Unicode code points and
+existing pct-encoded triplets, not bytes or visual grapheme clusters. A prefixed
+string value must be valid UTF-8, otherwise expansion throws
+`InvalidArgumentException`.
 
 Before:
 
@@ -272,6 +273,10 @@ consistent with top-level `null` and RFC 6570 section 2.4.2.
 Unsupported values throw `InvalidArgumentException` before expansion. This
 includes resources, closures, non-stringable objects, unsupported nested arrays,
 recursive arrays, and arrays nested too deeply.
+
+Variable values must now be valid UTF-8. Invalid byte sequences throw
+`InvalidArgumentException` instead of being percent-encoded byte by byte. Encode
+binary data, for example with base64, before expansion.
 
 Convert non-stringable objects before expansion:
 

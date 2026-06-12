@@ -494,6 +494,7 @@ final class UriTemplateTest extends TestCase
             'all null map members undefined' => ['X{.x}', ['x' => ['a' => null]], 'X'],
             'all null list members undefined' => ['{#x}', ['x' => [null]], ''],
             'null nested query leaf skipped' => ['{?x*}', ['x' => ['a' => ['b' => null, 'c' => 'v']]], '?a%5Bc%5D=v'],
+            'valid multibyte value' => ['{x}', ['x' => "caf\xC3\xA9 \xF0\x9F\x98\x80"], 'caf%C3%A9%20%F0%9F%98%80'],
         ];
     }
 
@@ -525,6 +526,12 @@ final class UriTemplateTest extends TestCase
             'nested array in unexploded map' => ['{?x}', ['x' => ['a' => ['b' => 'c']]]],
             'nested array in non-query exploded map' => ['{/x*}', ['x' => ['a' => ['b' => 'c']]]],
             'nested object in query extension' => ['{?x*}', ['x' => ['a' => ['b' => new \stdClass()]]]],
+            'invalid utf-8 scalar' => ['{x}', ['x' => "\xC3"]],
+            'invalid utf-8 reserved scalar' => ['{+x}', ['x' => "\xC3"]],
+            'invalid utf-8 list member' => ['{x}', ['x' => ['ok', "\xC3"]]],
+            'invalid utf-8 map key' => ['{?x*}', ['x' => ["\xC3" => 'v']]],
+            'invalid utf-8 nested value' => ['{?x*}', ['x' => ['a' => ['b' => "\xC3"]]]],
+            'invalid utf-8 nested key' => ['{?x*}', ['x' => ['a' => ["\xC3" => 'v']]]],
         ];
     }
 

@@ -51,6 +51,10 @@ recursive arrays, arrays nested too deeply, and nested arrays outside exploded
 query-style expansions. Unsupported values are validated only when the template
 references that variable.
 
+Variable values must be valid UTF-8. Invalid byte sequences throw
+`InvalidArgumentException`. Encode binary data, for example with base64, before
+expansion.
+
 ## Prefix Modifiers
 
 Prefix modifiers select a character prefix from scalar and stringable values:
@@ -70,7 +74,8 @@ varspec cannot combine prefix and explode modifiers.
 
 Prefix length counts Unicode characters and existing percent-encoded triplets,
 not bytes. For example, `%2F` counts as one character before the selected prefix
-is encoded for the expression type. Prefix selection requires valid UTF-8 input.
+is encoded for the expression type. Values must be valid UTF-8, as described in
+[values](#values).
 
 ## Nested Query Arrays
 
