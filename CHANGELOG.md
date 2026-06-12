@@ -31,6 +31,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Fixed invalid UTF-8 errors for list and map members not reporting the member path
 - Fixed exception messages embedding raw invalid UTF-8 bytes from map keys
 - Fixed nested query array members set to `null` being rejected for their keys instead of being omitted
+- Fixed float values expanding with the locale decimal separator on PHP versions before 8.0
 
 ### Removed
 - Dropped support for PHP 7.2 and 7.3

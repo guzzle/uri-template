@@ -251,6 +251,11 @@ expands as `0`, at every nesting level. Guzzle URI Template 1.x expanded
 top-level `false` as an empty string; pass `''` explicitly if that output is
 required, or `null` to omit the variable.
 
+Floats always expand with `.` as the decimal separator. Guzzle URI Template 1.x
+followed the `LC_NUMERIC` locale on PHP versions before 8.0, so a process that
+had called `setlocale()` with a comma-decimal locale such as `de_DE` could
+expand `3.5` as `3%2C5`.
+
 ```php
 UriTemplate::expand('/search{?q,page}', [
     'q' => null,

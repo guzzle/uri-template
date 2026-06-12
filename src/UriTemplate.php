@@ -200,7 +200,10 @@ final class UriTemplate
                         if ($isAssoc) {
                             if ($isNestedArray) {
                                 // Nested arrays must allow for deeply nested structures.
-                                $var = \http_build_query([$rawKey => $var], '', '&', \PHP_QUERY_RFC3986);
+                                // Float members are stringified first because
+                                // http_build_query's own float conversion
+                                // honors LC_NUMERIC before PHP 8.0.
+                                $var = \http_build_query([$rawKey => self::stringifyNestedFloats($var)], '', '&', \PHP_QUERY_RFC3986);
                                 if ($var === '') {
                                     continue;
                                 }
@@ -281,6 +284,10 @@ final class UriTemplate
      * from the empty string and matches the http_build_query semantics used
      * by the nested query-array extension.
      *
+     * Floats are formatted with "." as the decimal separator regardless of
+     * the process locale, because the plain float-to-string cast honors
+     * LC_NUMERIC before PHP 8.0.
+     *
      * @param mixed $value
      */
     private static function stringifyValue($value): string
@@ -289,7 +296,54 @@ final class UriTemplate
             return $value ? '1' : '0';
         }
 
+        if (\is_float($value)) {
+            return self::stringifyFloat($value);
+        }
+
         return (string) $value;
+    }
+
+    /**
+     * Convert a float to its expansion string independently of the locale.
+     *
+     * Before PHP 8.0 the float-to-string cast honors LC_NUMERIC, so a
+     * comma-decimal locale such as de_DE renders 3.5 as "3,5". Normalizing
+     * the locale decimal separator back to "." keeps expansion output
+     * deterministic across runtimes while preserving the precision-dependent
+     * formatting of the cast.
+     */
+    private static function stringifyFloat(float $value): string
+    {
+        $string = (string) $value;
+        $decimalPoint = \localeconv()['decimal_point'] ?? '.';
+
+        if ('.' !== $decimalPoint && '' !== $decimalPoint) {
+            $string = \str_replace($decimalPoint, '.', $string);
+        }
+
+        return $string;
+    }
+
+    /**
+     * Stringify float members of a nested query array so http_build_query
+     * does not apply its own locale-sensitive float conversion on PHP 7.4.
+     *
+     * @param array<array-key,mixed> $value
+     *
+     * @return array<array-key,mixed>
+     */
+    private static function stringifyNestedFloats(array $value): array
+    {
+        /** @var mixed $member */
+        foreach ($value as $key => $member) {
+            if (\is_float($member)) {
+                $value[$key] = self::stringifyFloat($member);
+            } elseif (\is_array($member)) {
+                $value[$key] = self::stringifyNestedFloats($member);
+            }
+        }
+
+        return $value;
     }
 
     /**

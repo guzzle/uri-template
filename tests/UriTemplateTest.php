@@ -618,6 +618,75 @@ final class UriTemplateTest extends TestCase
     }
 
     /**
+     * @return array<string,array{0:string, 1:array<string,mixed>, 2:string}>
+     */
+    public static function floatValueProvider(): array
+    {
+        return [
+            'fixed notation' => ['{x}', ['x' => 3.5], '3.5'],
+            'negative fixed notation' => ['{x}', ['x' => -2.25], '-2.25'],
+            'scientific notation plus encoded' => ['{x}', ['x' => 1.0E+20], '1.0E%2B20'],
+            'scientific notation plus reserved' => ['{+x}', ['x' => 1.0E+20], '1.0E+20'],
+            'scientific notation plus fragment' => ['{#x}', ['x' => 1.0E+20], '#1.0E+20'],
+            'scientific notation plus query' => ['{?x}', ['x' => 1.0E+20], '?x=1.0E%2B20'],
+            'float in list' => ['{x}', ['x' => [1.5, 2.5]], '1.5,2.5'],
+            'float in exploded map' => ['{?x*}', ['x' => ['a' => 3.5]], '?a=3.5'],
+            'float in nested query map' => ['{?x*}', ['x' => ['a' => ['b' => 3.5]]], '?a%5Bb%5D=3.5'],
+            'float prefix' => ['{x:3}', ['x' => 37.5], '37.'],
+            'infinity' => ['{x}', ['x' => \INF], 'INF'],
+            'negative infinity' => ['{x}', ['x' => -\INF], '-INF'],
+            'nan' => ['{x}', ['x' => \NAN], 'NAN'],
+        ];
+    }
+
+    /**
+     * @dataProvider floatValueProvider
+     *
+     * @param array<string,mixed> $variables
+     */
+    public function testExpandsFloatValues(string $template, array $variables, string $expansion): void
+    {
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
+    }
+
+    public function testFloatExpansionFollowsThePrecisionIniSetting(): void
+    {
+        $previous = \ini_get('precision');
+        self::assertNotFalse($previous);
+
+        try {
+            \ini_set('precision', '14');
+            self::assertSame('0.3', UriTemplate::expand('{x}', ['x' => 0.1 + 0.2]));
+            self::assertSame('1.0E-5', UriTemplate::expand('{x}', ['x' => 0.00001]));
+
+            \ini_set('precision', '17');
+            self::assertSame('0.30000000000000004', UriTemplate::expand('{x}', ['x' => 0.1 + 0.2]));
+        } finally {
+            \ini_set('precision', $previous);
+        }
+    }
+
+    public function testFloatExpansionIsLocaleIndependent(): void
+    {
+        $previous = \setlocale(\LC_NUMERIC, '0');
+        self::assertNotFalse($previous);
+
+        if (\setlocale(\LC_NUMERIC, 'de_DE.UTF-8', 'de_DE.utf8', 'de_DE', 'fr_FR.UTF-8', 'fr_FR.utf8', 'fr_FR') === false) {
+            self::markTestSkipped('No comma-decimal locale is available.');
+        }
+
+        try {
+            self::assertSame('3.5', UriTemplate::expand('{x}', ['x' => 3.5]));
+            self::assertSame('?x=3.5', UriTemplate::expand('{?x}', ['x' => 3.5]));
+            self::assertSame('?a=3.5', UriTemplate::expand('{?x*}', ['x' => ['a' => 3.5]]));
+            self::assertSame('?a%5Bb%5D=3.5', UriTemplate::expand('{?x*}', ['x' => ['a' => ['b' => 3.5]]]));
+            self::assertSame('1.0E%2B25', UriTemplate::expand('{x}', ['x' => 1.0E+25]));
+        } finally {
+            \setlocale(\LC_NUMERIC, $previous);
+        }
+    }
+
+    /**
      * @return array<string,array{0:string, 1:array<string,mixed>}>
      */
     public static function invalidVariableShapeProvider(): array
