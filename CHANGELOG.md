@@ -36,6 +36,8 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Fixed nested query array members set to `null` being rejected for their keys instead of being omitted
 - Fixed float values expanding with the locale decimal separator on PHP versions before 8.0
 - Fixed exception messages embedding raw invalid UTF-8 bytes from expression text
+- Fixed invalid UTF-8 in literal text reporting the offset of the literal segment instead of the first invalid byte
+- Fixed PCRE engine failures during literal text validation being reported as invalid UTF-8
 
 ### Removed
 
