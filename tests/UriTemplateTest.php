@@ -518,6 +518,34 @@ final class UriTemplateTest extends TestCase
     /**
      * @return array<string,array{0:string}>
      */
+    public static function invalidUtf8ExpressionProvider(): array
+    {
+        return [
+            'lone invalid byte' => ["{\xC3}"],
+            'invalid byte after name' => ["{bad\xC3}"],
+            'invalid byte after literal text' => ["/ok/{bad\xC3}"],
+            'invalid byte in variable list' => ["{?x,\xC3}"],
+            'invalid byte before whitespace' => ["{bad\xC3 }"],
+        ];
+    }
+
+    /**
+     * @dataProvider invalidUtf8ExpressionProvider
+     */
+    public function testEscapesInvalidUtf8ExpressionsInErrorMessages(string $template): void
+    {
+        try {
+            UriTemplate::expand($template, []);
+            self::fail('Expected InvalidArgumentException was not thrown.');
+        } catch (\InvalidArgumentException $e) {
+            self::assertStringContainsString('\xC3', $e->getMessage());
+            self::assertSame(1, \preg_match('//u', $e->getMessage()));
+        }
+    }
+
+    /**
+     * @return array<string,array{0:string}>
+     */
     public static function invalidModifierProvider(): array
     {
         return [

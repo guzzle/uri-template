@@ -459,8 +459,8 @@ final class UriTemplate
     {
         return new \InvalidArgumentException(\sprintf(
             'Invalid URI template expression "{%s}": %s.',
-            $expression,
-            $message
+            self::sanitizeDiagnosticText($expression),
+            self::sanitizeDiagnosticText($message)
         ));
     }
 
@@ -500,32 +500,33 @@ final class UriTemplate
     {
         return new \InvalidArgumentException(\sprintf(
             'Invalid URI template variable "%s" in "{%s}": %s.',
-            self::sanitizeVariablePath($path),
-            $expression,
-            $message
+            self::sanitizeDiagnosticText($path),
+            self::sanitizeDiagnosticText($expression),
+            self::sanitizeDiagnosticText($message)
         ));
     }
 
     /**
-     * Make a variable member path safe to embed in an exception message.
+     * Make diagnostic text safe to embed in an exception message.
      *
-     * Member paths are built from raw array keys, so a path can contain
-     * byte sequences that are not valid UTF-8. Escaping such bytes keeps
-     * the exception message itself valid UTF-8 for consumers that
-     * serialize messages, such as json_encode-based loggers.
+     * Expression text comes from raw template bytes and member paths are
+     * built from raw array keys, so either can contain byte sequences that
+     * are not valid UTF-8. Escaping such bytes keeps the exception message
+     * itself valid UTF-8 for consumers that serialize messages, such as
+     * json_encode-based loggers.
      */
-    private static function sanitizeVariablePath(string $path): string
+    private static function sanitizeDiagnosticText(string $value): string
     {
-        if (\preg_match('//u', $path) === 1) {
-            return $path;
+        if (\preg_match('//u', $value) === 1) {
+            return $value;
         }
 
         $sanitized = '';
 
-        for ($offset = 0, $length = \strlen($path); $offset < $length; ++$offset) {
-            $ord = \ord($path[$offset]);
+        for ($offset = 0, $length = \strlen($value); $offset < $length; ++$offset) {
+            $ord = \ord($value[$offset]);
 
-            $sanitized .= $ord >= 0x20 && $ord <= 0x7E ? $path[$offset] : \sprintf('\x%02X', $ord);
+            $sanitized .= $ord >= 0x20 && $ord <= 0x7E ? $value[$offset] : \sprintf('\x%02X', $ord);
         }
 
         return $sanitized;
