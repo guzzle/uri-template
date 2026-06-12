@@ -30,6 +30,7 @@ final class UriTemplateTest extends TestCase
                 'comma' => ',',
             ],
             'empty_keys' => [],
+            'empty_member_list' => [''],
         ];
 
         return \array_map(static function ($t) use ($variables) {
@@ -109,6 +110,15 @@ final class UriTemplateTest extends TestCase
             ['{.null,var}',        '.value'],
             ['X{.empty_keys*}',     'X'],
             ['X{.empty_keys}',      'X'],
+            ['{/empty}',            '/'],
+            ['{empty_member_list}', ''],
+            ['{+empty_member_list}', ''],
+            ['{#empty_member_list}', '#'],
+            ['X{.empty_member_list}', 'X.'],
+            ['{/empty_member_list}', '/'],
+            ['{/empty_member_list*}', '/'],
+            ['X{.empty_member_list*}', 'X.'],
+            ['{#null,empty_member_list}', '#'],
             // Test that missing expansions are skipped
             ['test{&missing*}',     'test'],
             // Test that multiple expansions can be set

@@ -4,6 +4,11 @@ All notable changes to `uri-template` will be documented in this file.
 
 Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) principles.
 
+## v1.0.7 - Upcoming
+
+### Fixed
+- Fixed the operator's leading character being omitted when defined variables expand to empty strings
+
 ## v1.0.6 - 2026-05-23
 
 ### Fixed

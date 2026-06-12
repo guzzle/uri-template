@@ -78,7 +78,7 @@ final class UriTemplate
         $joiner = self::$operatorHash[$parsed['operator']]['joiner'];
         $useQuery = self::$operatorHash[$parsed['operator']]['query'];
         $allowReserved = $parsed['operator'] === '+' || $parsed['operator'] === '#';
-        $allUndefined = true;
+        $hasDefinedVariable = false;
 
         foreach ($parsed['values'] as $value) {
             if (!isset($variables[$value['value']])) {
@@ -148,7 +148,6 @@ final class UriTemplate
                     $expanded = \implode(',', $kvp);
                 }
             } else {
-                $allUndefined = false;
                 if ($value['modifier'] === ':' && isset($value['position'])) {
                     $variable = \substr((string) $variable, 0, $value['position']);
                 }
@@ -163,20 +162,18 @@ final class UriTemplate
                 }
             }
 
+            $hasDefinedVariable = true;
+
             $replacements[] = $expanded;
         }
 
         $ret = \implode($joiner, $replacements);
 
-        if ('' === $ret) {
-            // Spec section 3.2.4 and 3.2.5
-            if (false === $allUndefined && ('#' === $prefix || '.' === $prefix)) {
-                return $prefix;
-            }
-        } else {
-            if ('' !== $prefix) {
-                return \sprintf('%s%s', $prefix, $ret);
-            }
+        // Spec section 3.2.1 and appendix A: the operator's first string is
+        // appended once any variable in the expression is defined, even when
+        // every defined value expands to an empty string.
+        if ('' !== $prefix && $hasDefinedVariable) {
+            return \sprintf('%s%s', $prefix, $ret);
         }
 
         return $ret;
