@@ -302,6 +302,7 @@ final class UriTemplateTest extends TestCase
             'dot separator' => ['{last.name}', ['last.name' => 'Doe'], 'Doe'],
             'pct encoded space in name' => ['{/Some%20Thing}', ['Some%20Thing' => 'foo'], '/foo'],
             'pct encoded unicode in name' => ['{?Stra%C3%9Fe}', ['Stra%C3%9Fe' => 'Gruner Weg'], '?Stra%C3%9Fe=Gruner%20Weg'],
+            'long name' => ['{'.\str_repeat('a', 512).'}', [\str_repeat('a', 512) => 'value'], 'value'],
         ];
     }
 
@@ -353,6 +354,20 @@ final class UriTemplateTest extends TestCase
     public function testRejectsInvalidVariableNames(string $template): void
     {
         $this->assertInvalidTemplate($template);
+    }
+
+    public function testReportsEngineFailuresOnLongVariableNamesAsRuntimeException(): void
+    {
+        // Spec section 2.3 places no length limit on variable names, so a
+        // grammar-valid long name must either expand or surface a PCRE
+        // engine failure as a RuntimeException, never as invalid syntax.
+        $name = \str_repeat('a', 20000);
+
+        try {
+            self::assertSame('ok', UriTemplate::expand('{'.$name.'}', [$name => 'ok']));
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString('Unable to parse variable specifier', $e->getMessage());
+        }
     }
 
     /**
