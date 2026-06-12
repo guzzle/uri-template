@@ -58,7 +58,9 @@ omitted, like top-level `null`. A list or map whose members are all `null` is
 treated as undefined and omitted, like an empty array. A list or map with at
 least one defined member is a defined, non-empty value: in named non-exploded
 expansions, `=` follows the name even when every member expands to the empty
-string, so `{;l}` with `['l' => ['']]` expands to `;l=`.
+string, so `{;l}` with `['l' => ['']]` expands to `;l=`. See the [conformance
+notes](uri-template-usage.md#specification-conformance-notes) for how the
+all-`null` rule maps to RFC 6570.
 
 Arrays whose keys are exactly `0` through `n-1` in ascending insertion order
 expand as lists. All other arrays, including reordered, sparse, and mixed-key
@@ -72,6 +74,14 @@ validated only when the template references that variable.
 Variable values must be valid UTF-8. Invalid byte sequences throw
 `InvalidArgumentException`. Encode binary data, for example with base64, before
 expansion.
+
+Values are expanded as given, without Unicode normalization. Canonically
+equivalent inputs expand to different URIs: the decomposed value `"e\u{0301}"`
+expands to `e%CC%81`, while the precomposed value `"\u{00E9}"` expands to
+`%C3%A9`. Normalize user-entered text, for example with ext-intl's
+`Normalizer::normalize($value, Normalizer::FORM_C)`, before expansion. See the
+[conformance notes](uri-template-usage.md#specification-conformance-notes) for
+the RFC 6570 section 1.6 background.
 
 ## Prefix Modifiers
 
@@ -94,8 +104,12 @@ Prefix length counts Unicode characters and existing percent-encoded
 characters, not bytes. For example, `%2F` counts as one character before the
 selected prefix is encoded for the expression type, and consecutive
 percent-encoded triplets that encode one Unicode code point in UTF-8, such as
-`%C3%A9`, also count as one character. Values must be valid UTF-8, as described
-in [values](#values).
+`%C3%A9`, also count as one character. A combining mark is its own character,
+so a prefix can split a decomposed character sequence: `{x:1}` with the
+decomposed value `"e\u{0301}f"` selects only `e`, dropping the combining
+accent. Normalize values to NFC before expansion to keep user-perceived
+characters intact. Values must be valid UTF-8, as described in
+[values](#values).
 
 ## Nested Query Arrays
 
@@ -126,8 +140,16 @@ UriTemplate::expand('/search{?filter*}', [
 Empty nested arrays are omitted from exploded query expansions. Empty scalar
 values are preserved.
 
-Empty-string keys in nested query arrays produce PHP append syntax
-(`a%5B%5D=v`), which does not round-trip the key.
+Empty-string keys at nested levels of a nested query array produce PHP append
+syntax (`a%5B%5D=v`), which does not round-trip the key.
+
+A top-level empty-string key whose value is a non-empty nested array produces
+bracket syntax with an empty root name (`%5Ba%5D=v`, decoded `[a]=v`), which
+drops the root pair name and does not round-trip. Deeper nesting keeps the
+empty root name (`%5Ba%5D%5Bb%5D=v`). This applies to `{?var*}` and `{&var*}`
+alike. A top-level empty-string key with a scalar value keeps the empty pair
+name in the output (`=v`), and one with an empty nested array is omitted, like
+other empty nested arrays.
 
 ## Validation Errors
 

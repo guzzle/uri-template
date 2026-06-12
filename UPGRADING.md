@@ -278,7 +278,10 @@ Nested arrays in maps are supported for exploded query-style expansions, such as
 `{?var*}` and `{&var*}`, to preserve existing Guzzle URI Template behavior.
 
 `null` members inside lists and maps are treated as undefined and omitted,
-consistent with top-level `null` and RFC 6570 section 2.4.2.
+consistent with top-level `null`. RFC 6570 section 3.2.1 expands a list as a
+concatenation of "the defined member string values", and section 2.4.2 states
+that "only the defined pairs are present in the expansion". A list or map whose
+members are all `null` is treated as a wholly undefined variable.
 
 Unsupported values throw `InvalidArgumentException` before expansion. This
 includes resources, closures, non-stringable objects, unsupported nested arrays,

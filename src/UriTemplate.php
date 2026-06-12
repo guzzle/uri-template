@@ -173,8 +173,10 @@ final class UriTemplate
                 /** @var mixed $var */
                 foreach ($variable as $key => $var) {
                     if ($var === null) {
-                        // Spec sections 2.3 and 2.4.2: only members with
-                        // defined values are present in the expansion.
+                        // Spec section 3.2.1: a list expands "the defined
+                        // member string values", and spec section 2.4.2:
+                        // "only the defined pairs are present in the
+                        // expansion", so undefined members are skipped.
                         continue;
                     }
 
@@ -227,6 +229,12 @@ final class UriTemplate
                 }
 
                 if ($kvp === []) {
+                    // A composite with no defined members is treated as an
+                    // undefined variable. Spec section 2.3 states this for
+                    // associative arrays only; extending it to lists whose
+                    // members are all null is a documented conformance
+                    // decision, since the spec calls a list undefined only
+                    // when it contains zero members.
                     continue;
                 } elseif ($value['modifier'] === '*') {
                     $expanded = \implode($joiner, $kvp);
