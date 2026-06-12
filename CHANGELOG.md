@@ -23,6 +23,11 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 ### Removed
 - Dropped support for PHP 7.2 and 7.3
 
+## v1.0.7 - Upcoming
+
+### Fixed
+- Fixed the operator's leading character being omitted when defined variables expand to empty strings
+
 ## v1.0.6 - 2026-05-23
 
 ### Fixed
