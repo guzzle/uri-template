@@ -44,9 +44,10 @@ PHP 7.4 where the plain cast honors `LC_NUMERIC`. The conversion rounds to the
 uses scientific notation, such as `1.0E+20`, when fixed notation would need more
 significant digits than `precision` allows or the magnitude is below `0.0001`.
 The `+` in an exponent is percent-encoded as `%2B` except under reserved and
-fragment expansion. Non-finite floats expand as the literal strings `INF`,
-`-INF`, and `NAN`. Format floats yourself, for example with `number_format()`
-or `sprintf()`, when a specific decimal representation is required.
+fragment expansion. Non-finite floats are not supported: `INF`, `-INF`, and
+`NAN` throw `InvalidArgumentException`. Format floats yourself, for example
+with `number_format()` or `sprintf()`, when a specific decimal representation
+is required.
 
 An empty string is a defined value and is expanded. An empty array is treated as
 undefined and omitted. Missing variables and variables set to `null` are treated
@@ -64,9 +65,9 @@ expand as lists. All other arrays, including reordered, sparse, and mixed-key
 arrays, expand as maps. Map and list order follows PHP array insertion order.
 
 Unsupported values include resources, closures, non-stringable objects,
-recursive arrays, arrays nested too deeply, and nested arrays outside exploded
-query-style expansions. Unsupported values are validated only when the template
-references that variable.
+non-finite floats, recursive arrays, arrays nested too deeply, and nested
+arrays outside exploded query-style expansions. Unsupported values are
+validated only when the template references that variable.
 
 Variable values must be valid UTF-8. Invalid byte sequences throw
 `InvalidArgumentException`. Encode binary data, for example with base64, before

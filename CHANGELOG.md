@@ -17,6 +17,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Nested null values in lists and maps are now treated as undefined members and omitted
 - Variable values must now be valid UTF-8 and invalid byte sequences throw `InvalidArgumentException`
 - Booleans now expand as `1` and `0` at every nesting level
+- Non-finite floats now throw `InvalidArgumentException` instead of expanding as `INF` or `NAN`
 
 ### Fixed
 - Fixed invalid template expressions being accepted as parameter names in query and path-style expansions

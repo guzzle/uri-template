@@ -202,8 +202,8 @@ Booleans expand as `1` and `0` at every nesting level, as described in the
 Floats are converted to strings by the library because RFC 6570 defines only
 string, list, and associative-array values. The conversion always uses `.` as
 the decimal separator, regardless of the process locale, and follows PHP's
-`precision` setting, as described in the [input
-contract](input-contract.md#values).
+`precision` setting. Non-finite floats are rejected, as described in the
+[input contract](input-contract.md#values).
 
 Variable values must be valid UTF-8, per RFC 6570 section 1.6. Invalid byte
 sequences throw `InvalidArgumentException`, as described in the [input

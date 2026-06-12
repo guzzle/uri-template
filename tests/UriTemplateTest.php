@@ -633,9 +633,6 @@ final class UriTemplateTest extends TestCase
             'float in exploded map' => ['{?x*}', ['x' => ['a' => 3.5]], '?a=3.5'],
             'float in nested query map' => ['{?x*}', ['x' => ['a' => ['b' => 3.5]]], '?a%5Bb%5D=3.5'],
             'float prefix' => ['{x:3}', ['x' => 37.5], '37.'],
-            'infinity' => ['{x}', ['x' => \INF], 'INF'],
-            'negative infinity' => ['{x}', ['x' => -\INF], '-INF'],
-            'nan' => ['{x}', ['x' => \NAN], 'NAN'],
         ];
     }
 
@@ -710,6 +707,12 @@ final class UriTemplateTest extends TestCase
             'invalid utf-8 map key' => ['{?x*}', ['x' => ["\xC3" => 'v']]],
             'invalid utf-8 nested value' => ['{?x*}', ['x' => ['a' => ['b' => "\xC3"]]]],
             'invalid utf-8 nested key' => ['{?x*}', ['x' => ['a' => ["\xC3" => 'v']]]],
+            'nan scalar' => ['{x}', ['x' => \NAN]],
+            'infinity scalar' => ['{x}', ['x' => \INF]],
+            'negative infinity scalar' => ['{x}', ['x' => -\INF]],
+            'nan in list' => ['{x}', ['x' => [\NAN]]],
+            'infinity in map' => ['{?x*}', ['x' => ['a' => \INF]]],
+            'nan in nested query map' => ['{?x*}', ['x' => ['a' => ['b' => \NAN]]]],
         ];
     }
 
