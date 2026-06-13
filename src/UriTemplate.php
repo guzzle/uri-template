@@ -459,8 +459,8 @@ final class UriTemplate
     {
         return new \InvalidArgumentException(\sprintf(
             'Invalid URI template expression "{%s}": %s.',
-            self::sanitizeDiagnosticText($expression),
-            self::sanitizeDiagnosticText($message)
+            self::escapeInvalidUtf8ForMessage($expression),
+            self::escapeInvalidUtf8ForMessage($message)
         ));
     }
 
@@ -500,22 +500,16 @@ final class UriTemplate
     {
         return new \InvalidArgumentException(\sprintf(
             'Invalid URI template variable "%s" in "{%s}": %s.',
-            self::sanitizeDiagnosticText($path),
-            self::sanitizeDiagnosticText($expression),
-            self::sanitizeDiagnosticText($message)
+            self::escapeInvalidUtf8ForMessage($path),
+            self::escapeInvalidUtf8ForMessage($expression),
+            $message
         ));
     }
 
     /**
-     * Make diagnostic text safe to embed in an exception message.
-     *
-     * Expression text comes from raw template bytes and member paths are
-     * built from raw array keys, so either can contain byte sequences that
-     * are not valid UTF-8. Escaping such bytes keeps the exception message
-     * itself valid UTF-8 for consumers that serialize messages, such as
-     * json_encode-based loggers.
+     * Escape invalid UTF-8 text before embedding it in an exception message.
      */
-    private static function sanitizeDiagnosticText(string $value): string
+    private static function escapeInvalidUtf8ForMessage(string $value): string
     {
         if (\preg_match('//u', $value) === 1) {
             return $value;
