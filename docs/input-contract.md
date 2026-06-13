@@ -161,9 +161,8 @@ operators, invalid variable names, invalid modifiers, invalid literal text, and
 unsupported shapes for variables referenced by the template.
 
 Errors for invalid list and map members identify the member by path, such as
-`x[1]` or `filter[author][name]`. Exception messages are always valid UTF-8:
-when a member path or expression text contains invalid byte sequences, bytes
-outside printable ASCII are escaped as `\xHH`.
+`x[1]` or `filter[author][name]`. When a member path or expression text contains
+invalid byte sequences, bytes outside printable ASCII are escaped as `\xHH`.
 
 `RuntimeException` is thrown when the PCRE engine fails while processing a
 template, for example when an extremely long variable name exhausts a PCRE
