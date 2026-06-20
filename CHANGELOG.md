@@ -43,6 +43,12 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 
 - Dropped support for PHP 7.2 and 7.3
 
+## v1.0.8 - Upcoming
+
+### Fixed
+
+- Report PCRE errors when URI template value encoding fails
+
 ## v1.0.7 - 2026-06-12
 
 ### Fixed
