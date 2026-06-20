@@ -662,13 +662,13 @@ final class UriTemplate
 
             $memberPath = \sprintf('%s[%s]', $path, (string) $key);
 
-            if (\is_string($key) && \preg_match('//u', $key) !== 1) {
-                throw self::invalidVariable($expression, $memberPath, 'variable values must be valid UTF-8');
+            if (\is_string($key)) {
+                self::assertValidVariableUtf8($key, $expression, $memberPath);
             }
 
             if (\is_scalar($member)) {
-                if (\is_string($member) && \preg_match('//u', $member) !== 1) {
-                    throw self::invalidVariable($expression, $memberPath, 'variable values must be valid UTF-8');
+                if (\is_string($member)) {
+                    self::assertValidVariableUtf8($member, $expression, $memberPath);
                 }
 
                 if (\is_float($member) && !\is_finite($member)) {
@@ -715,6 +715,10 @@ final class UriTemplate
         $result = \preg_match_all('/%[0-9A-Fa-f]{2}|./us', $value, $matches);
 
         if ($result === false || \preg_last_error() !== \PREG_NO_ERROR) {
+            if (\preg_last_error() !== \PREG_BAD_UTF8_ERROR) {
+                throw new \RuntimeException(\sprintf('Unable to process template: %s', \preg_last_error_msg()));
+            }
+
             throw self::invalidVariable($expression, $name, 'prefix modifier requires valid UTF-8');
         }
 
@@ -899,9 +903,7 @@ final class UriTemplate
 
         // Spec section 1.6: values are encoded as UTF-8 before pct-encoding,
         // so byte sequences that are not valid UTF-8 cannot be expanded.
-        if (\preg_match('//u', $value) !== 1) {
-            throw self::invalidVariable($expression, $name, 'variable values must be valid UTF-8');
-        }
+        self::assertValidVariableUtf8($value, $expression, $name);
 
         $matches = [];
         if (\preg_match_all('/%[0-9A-Fa-f]{2}|./s', $value, $matches) === false) {
@@ -930,5 +932,18 @@ final class UriTemplate
         }
 
         return $encoded;
+    }
+
+    private static function assertValidVariableUtf8(string $value, string $expression, string $name): void
+    {
+        if (\preg_match('//u', $value) === 1) {
+            return;
+        }
+
+        if (\preg_last_error() !== \PREG_BAD_UTF8_ERROR) {
+            throw new \RuntimeException(\sprintf('Unable to process template: %s', \preg_last_error_msg()));
+        }
+
+        throw self::invalidVariable($expression, $name, 'variable values must be valid UTF-8');
     }
 }
