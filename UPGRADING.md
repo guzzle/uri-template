@@ -23,7 +23,7 @@ supported PHP `^7.2.5 || ^8.0`.
 If your application still supports PHP 7.2 or 7.3, continue using Guzzle URI
 Template 1.x until your minimum PHP version is raised.
 
-Guzzle URI Template 2.0 continues to require `symfony/polyfill-php80:^1.24`, so
+Guzzle URI Template 2.0 continues to require `symfony/polyfill-php80:^1.25`, so
 there are no runtime package dependency changes beyond PHP.
 
 #### Input Contract

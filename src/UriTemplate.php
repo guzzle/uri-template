@@ -46,7 +46,7 @@ final class UriTemplate
     {
         $template = self::prepareTemplate($template);
 
-        if (false === \strpos($template, '{')) {
+        if (!\str_contains($template, '{')) {
             return $template;
         }
 
@@ -108,7 +108,7 @@ final class UriTemplate
 
                 $expression = \substr($template, $offset + 1, $end - $offset - 1);
 
-                if (\strpos($expression, '{') !== false) {
+                if (\str_contains($expression, '{')) {
                     throw self::invalidTemplate($offset, 'nested expressions are not allowed');
                 }
 
@@ -391,7 +391,7 @@ final class UriTemplate
             $operator = $first;
             /** @var string */
             $expression = \substr($expression, 1);
-        } elseif (\strpos(self::RESERVED_OPERATORS, $first) !== false) {
+        } elseif (\str_contains(self::RESERVED_OPERATORS, $first)) {
             throw self::invalidExpression($original, \sprintf('unsupported operator "%s"', $first));
         }
 
@@ -420,7 +420,7 @@ final class UriTemplate
             throw self::invalidExpression($expression, \sprintf('invalid whitespace in variable specifier "%s"', $varspec));
         }
 
-        if (\strpos(self::SUPPORTED_OPERATORS.self::RESERVED_OPERATORS, $varspec[0]) !== false) {
+        if (\str_contains(self::SUPPORTED_OPERATORS.self::RESERVED_OPERATORS, $varspec[0])) {
             throw self::invalidExpression($expression, \sprintf('invalid variable specifier "%s"', $varspec));
         }
 
@@ -734,7 +734,7 @@ final class UriTemplate
         for ($taken = 0; $taken < $length && $index < $count; ++$taken) {
             $width = 1;
 
-            if (\strlen($tokens[$index]) === 3 && $tokens[$index][0] === '%') {
+            if (\strlen($tokens[$index]) === 3 && \str_starts_with($tokens[$index], '%')) {
                 $width = self::pctEncodedCodePointTripletCount($tokens, $index);
             }
 
@@ -776,7 +776,7 @@ final class UriTemplate
         for ($offset = 1; $offset < $octets; ++$offset) {
             $token = $tokens[$index + $offset] ?? '';
 
-            if (\strlen($token) !== 3 || $token[0] !== '%') {
+            if (\strlen($token) !== 3 || !\str_starts_with($token, '%')) {
                 return 1;
             }
 
@@ -825,7 +825,7 @@ final class UriTemplate
 
             $position = $offset + \strlen($token);
 
-            if (\preg_match('/\A%[0-9A-Fa-f]{2}\z/', $token) === 1) {
+            if (\strlen($token) === 3 && \str_starts_with($token, '%')) {
                 $encoded .= $token;
                 continue;
             }
@@ -913,17 +913,17 @@ final class UriTemplate
         $encoded = '';
 
         foreach ($matches[0] as $token) {
-            if ($allowReserved && \preg_match('/\A%[0-9A-Fa-f]{2}\z/', $token) === 1) {
+            if ($allowReserved && \strlen($token) === 3 && \str_starts_with($token, '%')) {
                 $encoded .= $token;
                 continue;
             }
 
-            if (\preg_match('/\A[A-Za-z0-9._~-]\z/', $token) === 1) {
+            if (\strlen($token) === 1 && \str_contains('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._~-', $token)) {
                 $encoded .= $token;
                 continue;
             }
 
-            if ($allowReserved && \strlen($token) === 1 && \strpos(":/?#[]@!$&'()*+,;=", $token) !== false) {
+            if ($allowReserved && \strlen($token) === 1 && \str_contains(":/?#[]@!$&'()*+,;=", $token)) {
                 $encoded .= $token;
                 continue;
             }
