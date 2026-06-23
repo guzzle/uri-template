@@ -44,7 +44,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 
 - Dropped support for PHP 7.2 and 7.3
 
-## v1.0.8 - Upcoming
+## v1.0.8 - 2026-06-23
 
 ### Fixed
 
