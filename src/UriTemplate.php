@@ -202,7 +202,7 @@ final class UriTemplate
 
         $result['values'] = [];
         foreach (\explode(',', $expression) as $value) {
-            $value = \trim($value);
+            $value = \trim($value, " \n\r\t\0\x0B");
             $varspec = [];
             if ($colonPos = \strpos($value, ':')) {
                 $varspec['value'] = (string) \substr($value, 0, $colonPos);
