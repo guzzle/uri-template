@@ -19,6 +19,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Variable values must now be valid UTF-8 and invalid byte sequences throw `InvalidArgumentException`
 - Booleans now expand as `1` and `0` at every nesting level
 - Non-finite floats now throw `InvalidArgumentException` instead of expanding as `INF` or `NAN`
+- Variable specifier whitespace padding is now detected with the real whitespace set, including form feed
 
 ### Fixed
 
