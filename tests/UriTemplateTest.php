@@ -322,6 +322,7 @@ final class UriTemplateTest extends TestCase
             'empty varspec after comma' => ['{var,}'],
             'empty varspec between commas' => ['{var,,hello}'],
             'whitespace after comma' => ['/resolution{?x, y}'],
+            'form feed after comma' => ["/resolution{?x,\fy}"],
         ];
     }
 

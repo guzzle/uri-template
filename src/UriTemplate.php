@@ -416,7 +416,7 @@ final class UriTemplate
      */
     private static function parseVarSpec(string $expression, string $varspec): array
     {
-        if ($varspec !== \trim($varspec)) {
+        if ($varspec !== \trim($varspec, " \t\n\r\v\f")) {
             throw self::invalidExpression($expression, \sprintf('invalid whitespace in variable specifier "%s"', $varspec));
         }
 
