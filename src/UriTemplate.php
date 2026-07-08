@@ -37,7 +37,23 @@ final class UriTemplate
     }
 
     /**
-     * @param array<string,mixed> $variables Variables to use in the template expansion
+     * @return array<array-key, mixed>
+     */
+    public function __serialize(): array
+    {
+        throw new \LogicException(static::class.' should never be serialized');
+    }
+
+    /**
+     * @param array<array-key, mixed> $data
+     */
+    public function __unserialize(array $data): void
+    {
+        throw new \LogicException(static::class.' should never be unserialized');
+    }
+
+    /**
+     * @param array<string, mixed> $variables Variables to use in the template expansion
      *
      * @throws \InvalidArgumentException When the template syntax or referenced variable shape is invalid
      * @throws \RuntimeException
@@ -69,7 +85,7 @@ final class UriTemplate
     }
 
     /**
-     * @param array<string,mixed> $variables Variables to use in the template expansion
+     * @param array<string, mixed> $variables Variables to use in the template expansion
      *
      * @return \Closure(array{0: string, 1: string}): string
      */
@@ -139,7 +155,7 @@ final class UriTemplate
     /**
      * Process an expansion
      *
-     * @param array<string,mixed>         $variables Variables to use in the template expansion
+     * @param array<string, mixed>        $variables Variables to use in the template expansion
      * @param array{0: string, 1: string} $matches   Matches met in the preg_replace_callback
      *
      * @return string Returns the replacement string
@@ -336,9 +352,9 @@ final class UriTemplate
      * Stringify float members of a nested query array so http_build_query
      * does not apply its own locale-sensitive float conversion on PHP 7.4.
      *
-     * @param array<array-key,mixed> $value
+     * @param array<array-key, mixed> $value
      *
-     * @return array<array-key,mixed>
+     * @return array<array-key, mixed>
      */
     private static function stringifyNestedFloats(array $value): array
     {
@@ -474,7 +490,7 @@ final class UriTemplate
      * Spec section 3.2.1: undefined variables are ignored by the expansion
      * process, so they are skipped before varspec shape validation.
      *
-     * @param array<string,mixed> $variables
+     * @param array<string, mixed> $variables
      */
     private static function isUndefinedVariable(array $variables, string $name): bool
     {
@@ -582,7 +598,7 @@ final class UriTemplate
     }
 
     /**
-     * @param array<array-key,mixed> $value
+     * @param array<array-key, mixed> $value
      */
     private static function assertListShape(string $path, array $value, string $expression): void
     {
@@ -606,7 +622,7 @@ final class UriTemplate
     }
 
     /**
-     * @param array<array-key,mixed> $value
+     * @param array<array-key, mixed> $value
      */
     private static function assertMapShape(
         string $path,
@@ -644,7 +660,7 @@ final class UriTemplate
     }
 
     /**
-     * @param array<array-key,mixed> $value
+     * @param array<array-key, mixed> $value
      */
     private static function assertNestedQueryShape(string $path, array $value, string $expression, int $depth): void
     {
@@ -695,7 +711,7 @@ final class UriTemplate
     /**
      * Determines if an array should be expanded as a map.
      *
-     * @param array<array-key,mixed> $array
+     * @param array<array-key, mixed> $array
      */
     private static function isAssoc(array $array): bool
     {

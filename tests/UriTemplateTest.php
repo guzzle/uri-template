@@ -1134,6 +1134,26 @@ final class UriTemplateTest extends TestCase
         self::assertSame('http://example.com/foo/bar/one,two?query=test&more%5B0%5D=fun&more%5B1%5D=ice%20cream&baz%5Bbar%5D=fizz&baz%5Btest%5D=buzz&bam=boo', $result);
     }
 
+    public function testRejectsNativePhpSerialization(): void
+    {
+        $template = (new \ReflectionClass(UriTemplate::class))->newInstanceWithoutConstructor();
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage(UriTemplate::class.' should never be serialized');
+
+        \serialize($template);
+    }
+
+    public function testRejectsNativePhpUnserialization(): void
+    {
+        $class = UriTemplate::class;
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage($class.' should never be unserialized');
+
+        \unserialize(\sprintf('O:%d:"%s":0:{}', \strlen($class), $class));
+    }
+
     /**
      * @return \Generator<int,array{0:string, 1:array<int,string>, 2:array<string,mixed>},mixed,void>
      */
