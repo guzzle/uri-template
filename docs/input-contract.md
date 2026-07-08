@@ -153,8 +153,8 @@ other empty nested arrays.
 
 ## Validation Errors
 
-Literal text outside expressions must already be valid URI template literal text.
-For example, use `/search%20terms/{id}` instead of `/search terms/{id}`.
+Literal text outside expressions must already be valid URI template literal
+text. For example, use `/search%20terms/{id}` instead of `/search terms/{id}`.
 
 `InvalidArgumentException` is thrown for invalid template syntax, unsupported
 operators, invalid variable names, invalid modifiers, invalid literal text, and

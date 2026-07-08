@@ -30,18 +30,18 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Fixed path-style parameter explode rendering empty members as `name=` instead of bare `name`
 - Fixed map keys not using the operator's allow set under reserved and fragment expansion
 - Fixed all-null lists and maps throwing with prefix modifiers instead of being skipped as undefined
-- Fixed PCRE engine failures on very long variable names being reported as invalid template syntax
 - Fixed prefix modifiers splitting Unicode code points encoded as multiple pct-encoded triplets
 - Fixed path-style expansion of composites rendering bare `name` instead of `name=` for empty joined members
-- Fixed invalid UTF-8 errors for list and map members not reporting the member path
-- Fixed exception messages embedding raw invalid UTF-8 bytes from map keys
 - Fixed nested query array members set to `null` being rejected for their keys instead of being omitted
 - Fixed float values expanding with the locale decimal separator on PHP versions before 8.0
+- Fixed PCRE engine failures on very long variable names being reported as invalid template syntax
+- Fixed invalid UTF-8 errors for list and map members not reporting the member path
+- Fixed exception messages embedding raw invalid UTF-8 bytes from map keys
 - Fixed exception messages embedding raw invalid UTF-8 bytes from expression text
+- Fixed exception messages embedding raw ASCII control bytes from expression text and map keys
 - Fixed invalid UTF-8 in literal text reporting the offset of the literal segment instead of the first invalid byte
 - Fixed PCRE engine failures during literal text validation being reported as invalid UTF-8
-- Report PCRE engine failures during variable UTF-8 validation as runtime errors
-- Fixed exception messages embedding raw ASCII control bytes from expression text and map keys
+- Fixed PCRE engine failures during variable UTF-8 validation not being reported as runtime errors
 
 ### Removed
 
