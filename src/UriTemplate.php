@@ -507,20 +507,21 @@ final class UriTemplate
     }
 
     /**
-     * Escape invalid UTF-8 text before embedding it in an exception message.
+     * Escape unsafe diagnostic text before embedding it in an exception message.
+     *
+     * ASCII control bytes are always escaped as \xHH. Text that is not valid
+     * UTF-8 additionally has all bytes outside printable ASCII escaped.
      */
     private static function escapeInvalidUtf8ForMessage(string $value): string
     {
-        if (\preg_match('//u', $value) === 1) {
-            return $value;
-        }
-
+        $isValidUtf8 = \preg_match('//u', $value) === 1;
         $sanitized = '';
 
         for ($offset = 0, $length = \strlen($value); $offset < $length; ++$offset) {
             $ord = \ord($value[$offset]);
+            $isSafeByte = $ord >= 0x20 && $ord !== 0x7F && ($isValidUtf8 || $ord <= 0x7E);
 
-            $sanitized .= $ord >= 0x20 && $ord <= 0x7E ? $value[$offset] : \sprintf('\x%02X', $ord);
+            $sanitized .= $isSafeByte ? $value[$offset] : \sprintf('\x%02X', $ord);
         }
 
         return $sanitized;

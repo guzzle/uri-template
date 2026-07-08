@@ -576,6 +576,35 @@ final class UriTemplateTest extends TestCase
     }
 
     /**
+     * @return array<string,array{0:string, 1:array<string,mixed>, 2:string, 3:string}>
+     */
+    public static function diagnosticControlByteProvider(): array
+    {
+        return [
+            'nul expression' => ["{bad\x00}", [], '"{bad\x00}"', "\x00"],
+            'esc map key' => ['{?x*}', ['x' => ["red\x1B[31m" => new \stdClass()]], 'variable "x[red\x1B[31m]"', "\x1B"],
+            'del map key' => ['{?x*}', ['x' => ["gone\x7F" => new \stdClass()]], 'variable "x[gone\x7F]"', "\x7F"],
+        ];
+    }
+
+    /**
+     * @dataProvider diagnosticControlByteProvider
+     *
+     * @param array<string,mixed> $variables
+     */
+    public function testEscapesControlBytesInErrorMessages(string $template, array $variables, string $fragment, string $rawByte): void
+    {
+        try {
+            UriTemplate::expand($template, $variables);
+            self::fail('Expected InvalidArgumentException was not thrown.');
+        } catch (\InvalidArgumentException $e) {
+            self::assertStringContainsString($fragment, $e->getMessage());
+            self::assertStringNotContainsString($rawByte, $e->getMessage());
+            self::assertSame(1, \preg_match('//u', $e->getMessage()));
+        }
+    }
+
+    /**
      * @return array<string,array{0:string}>
      */
     public static function invalidModifierProvider(): array

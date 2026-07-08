@@ -40,6 +40,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Fixed invalid UTF-8 in literal text reporting the offset of the literal segment instead of the first invalid byte
 - Fixed PCRE engine failures during literal text validation being reported as invalid UTF-8
 - Report PCRE engine failures during variable UTF-8 validation as runtime errors
+- Fixed exception messages embedding raw ASCII control bytes from expression text and map keys
 
 ### Removed
 
