@@ -423,3 +423,9 @@ controls the structure of the expanded URI.
 
 `UriTemplate` now has a private constructor. Use `UriTemplate::expand()`
 statically instead of instantiating the class.
+
+#### Native PHP Serialization
+
+`UriTemplate` no longer supports native PHP `serialize()` or `unserialize()`.
+The class is stateless; call `UriTemplate::expand()` statically instead of
+persisting instances.

@@ -20,6 +20,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Booleans now expand as `1` and `0` at every nesting level
 - Non-finite floats now throw `InvalidArgumentException` instead of expanding as `INF` or `NAN`
 - Variable specifier whitespace padding is now detected with the real whitespace set, including form feed
+- `UriTemplate` now rejects native PHP serialization and unserialization
 
 ### Fixed
 
