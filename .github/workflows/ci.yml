@@ -25,6 +25,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Generate comma-decimal locale
+        run: sudo locale-gen de_DE.UTF-8
+
       - name: Install dependencies
         run: composer update --no-interaction --prefer-stable --prefer-lowest --no-progress
 
@@ -51,6 +54,9 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v6
+
+      - name: Generate comma-decimal locale
+        run: sudo locale-gen de_DE.UTF-8
 
       - name: Install dependencies
         run: composer update --no-interaction --no-progress
