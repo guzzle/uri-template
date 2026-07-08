@@ -40,8 +40,13 @@ Missing variables and variables set to `null` are treated as undefined and are
 omitted from the expansion. Empty strings are defined values and are expanded.
 
 Invalid template syntax includes malformed braces, unsupported operators,
-invalid variable names, invalid modifiers, repeated operator-like variable
-specifiers, and prefix modifiers applied to list or map values.
+invalid variable names, invalid modifiers, and repeated operator-like variable
+specifiers.
+
+Prefix modifiers are valid template syntax, but they apply only to scalar or
+stringable referenced values. If a prefix modifier references a defined list or
+map value, expansion throws `InvalidArgumentException`; missing, `null`, empty,
+and all-`null` composites are treated as undefined and omitted.
 
 #### Common Migration Fixes
 
