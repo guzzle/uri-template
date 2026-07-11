@@ -35,17 +35,17 @@
     "require-dev": {
         "bamarni/composer-bin-plugin": "^1.8.2",
         "phpunit/phpunit": "^9.6.34",
-        "uri-template/tests": "1.0.1"
+        "uri-template/tests": "1.0.2"
     },
     "repositories": [
         {
             "type": "package",
             "package": {
                 "name": "uri-template/tests",
-                "version": "1.0.1",
+                "version": "1.0.2",
                 "dist": {
                     "type": "zip",
-                    "url": "https://github.com/uri-templates/uritemplate-test/archive/1eb27ab4462b9e5819dc47db99044f5fd1fa9bc7.zip"
+                    "url": "https://github.com/uri-templates/uritemplate-test/archive/4171dac22aa67fc710b3f6df308a50bd08552986.zip"
                 }
             }
         }
