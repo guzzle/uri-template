@@ -19,6 +19,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Variable values must now be valid UTF-8 and invalid byte sequences throw `InvalidArgumentException`
 - Booleans now expand as `1` and `0` at every nesting level
 - Non-finite floats now throw `InvalidArgumentException` instead of expanding as `INF` or `NAN`
+- Non-empty lists whose members are all null are now treated as defined variables
 - Variable specifier whitespace padding is now detected with the real whitespace set, including form feed
 - `UriTemplate` now rejects native PHP serialization and unserialization
 
@@ -30,7 +31,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Fixed path-style parameter explode rendering empty members as `name=` instead of bare `name`
 - Fixed map keys not using the operator's allow set under reserved and fragment expansion
 - Fixed map explode rendering empty members as `name=` instead of bare `name` for unnamed operators
-- Fixed all-null lists and maps throwing with prefix modifiers instead of being skipped as undefined
+- Fixed all-null maps throwing with prefix modifiers instead of being skipped as undefined
 - Fixed prefix modifiers splitting Unicode code points encoded as multiple pct-encoded triplets
 - Fixed path-style expansion of composites rendering bare `name` instead of `name=` for empty joined members
 - Fixed nested query array members set to `null` being rejected for their keys instead of being omitted

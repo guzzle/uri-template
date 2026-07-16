@@ -45,8 +45,9 @@ specifiers.
 
 Prefix modifiers are valid template syntax, but they apply only to scalar or
 stringable referenced values. If a prefix modifier references a defined list or
-map value, expansion throws `InvalidArgumentException`; missing, `null`, empty,
-and all-`null` composites are treated as undefined and omitted.
+map value, including a non-empty list whose members are all `null`, expansion
+throws `InvalidArgumentException`; missing and `null` variables, empty arrays,
+and maps whose members are all `null` are treated as undefined and omitted.
 
 #### Common Migration Fixes
 
@@ -299,8 +300,29 @@ Nested arrays in maps are supported for exploded query-style expansions, such as
 `null` members inside lists and maps are treated as undefined and omitted,
 consistent with top-level `null`. RFC 6570 section 3.2.1 expands a list as a
 concatenation of "the defined member string values", and section 2.4.2 states
-that "only the defined pairs are present in the expansion". A list or map whose
-members are all `null` is treated as a wholly undefined variable.
+that "only the defined pairs are present in the expansion". A map whose members
+are all `null` is treated as a wholly undefined variable, because RFC 6570
+section 2.3 considers an associative array undefined when all member names are
+associated with undefined values. A non-empty list whose members are all `null`
+is a defined variable with no defined members, because the same section calls a
+list undefined only when it contains zero members: the operator first string is
+still emitted, named forms render the name with the operator's empty-value
+form, and prefix modifiers are rejected as for any other list.
+
+Guzzle URI Template 1.x agreed with 2.0 on most expansions of such lists,
+including the `#`, `.`, and `/` first strings, `?l=`, `&l=`, and `;l`. 1.x
+differed on the exploded named forms, rendering `;l`, `?l=`, and `&l=` where
+2.0 renders `;`, `?`, and `&`, on lists mixing `null` and defined members,
+where 1.x expanded `[null, 'x']` as `,x` while 2.0 omits the `null` member and
+expands `x`, and on prefix modifiers, where 1.x expanded `{l:1}` with an
+all-`null` list as an empty string while 2.0 throws `InvalidArgumentException`:
+
+```php
+UriTemplate::expand('{/l}{;l}{;l*}', ['l' => [null]]);
+
+// 1.x: /;l;l
+// 2.0: /;l;
+```
 
 Unsupported values throw `InvalidArgumentException` before expansion. This
 includes resources, closures, non-stringable objects, unsupported nested arrays,

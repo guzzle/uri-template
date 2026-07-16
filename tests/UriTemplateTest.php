@@ -654,6 +654,8 @@ final class UriTemplateTest extends TestCase
             'matrix map' => ['{;keys:1}', ['keys' => ['semi' => ';']]],
             'list with null member' => ['{x:1}', ['x' => ['red', null]]],
             'map with null member' => ['{x:1}', ['x' => ['a' => null, 'b' => 'v']]],
+            'all null list' => ['{x:1}', ['x' => [null]]],
+            'path all null list' => ['{/x:3}', ['x' => [null, null]]],
         ];
     }
 
@@ -677,30 +679,62 @@ final class UriTemplateTest extends TestCase
     /**
      * @return array<string,array{0:string, 1:array<string,mixed>, 2:string}>
      */
-    public static function allNullCompositeProvider(): array
+    public static function allNullMapProvider(): array
     {
         return [
             'prefix on all null map' => ['{x:1}', ['x' => ['a' => null]], ''],
-            'prefix on all null list' => ['{x:1}', ['x' => [null]], ''],
-            'path prefix on all null list' => ['{/x:3}', ['x' => [null, null]], ''],
             'query prefix on all null map' => ['{?x:2}', ['x' => ['a' => null]], ''],
             'label prefix on all null map' => ['X{.x:1}', ['x' => ['a' => null]], 'X'],
             'remaining variables still expand' => ['{x:1,y}', ['x' => ['a' => null], 'y' => 'v'], 'v'],
-            'all null list path' => ['{/x}', ['x' => [null]], ''],
-            'all null list query' => ['{?x}', ['x' => [null]], ''],
-            'all null list exploded query' => ['{?x*}', ['x' => [null]], ''],
-            'all null list multiple members' => ['{?l}', ['l' => [null, null]], ''],
             'all null map query' => ['{?m}', ['m' => ['k' => null]], ''],
-            'all null list beside defined variable' => ['{/x,y}', ['x' => [null], 'y' => 'z'], '/z'],
         ];
     }
 
     /**
-     * @dataProvider allNullCompositeProvider
+     * @dataProvider allNullMapProvider
      *
      * @param array<string,mixed> $variables
      */
-    public function testTreatsAllNullCompositesAsUndefined(string $template, array $variables, string $expansion): void
+    public function testTreatsAllNullMapsAsUndefined(string $template, array $variables, string $expansion): void
+    {
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
+    }
+
+    /**
+     * @return array<string,array{0:string, 1:array<string,mixed>, 2:string}>
+     */
+    public static function allNullListProvider(): array
+    {
+        return [
+            'simple' => ['{l}', ['l' => [null]], ''],
+            'simple exploded' => ['{l*}', ['l' => [null]], ''],
+            'reserved' => ['{+l}', ['l' => [null]], ''],
+            'reserved exploded' => ['{+l*}', ['l' => [null]], ''],
+            'fragment' => ['{#l}', ['l' => [null]], '#'],
+            'fragment exploded' => ['{#l*}', ['l' => [null]], '#'],
+            'label' => ['{.l}', ['l' => [null]], '.'],
+            'label exploded' => ['{.l*}', ['l' => [null]], '.'],
+            'path' => ['{/l}', ['l' => [null]], '/'],
+            'path exploded' => ['{/l*}', ['l' => [null]], '/'],
+            'path style' => ['{;l}', ['l' => [null]], ';l'],
+            'path style exploded' => ['{;l*}', ['l' => [null]], ';'],
+            'query' => ['{?l}', ['l' => [null]], '?l='],
+            'query exploded' => ['{?l*}', ['l' => [null]], '?'],
+            'query continuation' => ['{&l}', ['l' => [null]], '&l='],
+            'query continuation exploded' => ['{&l*}', ['l' => [null]], '&'],
+            'multiple null members' => ['{?l}', ['l' => [null, null]], '?l='],
+            'mixed null and defined members' => ['{l}', ['l' => [null, 'x']], 'x'],
+            'beside defined variable' => ['{x,y}', ['x' => [null], 'y' => 'z'], ',z'],
+            'path beside defined variable' => ['{/x,y}', ['x' => [null], 'y' => 'z'], '//z'],
+        ];
+    }
+
+    /**
+     * @dataProvider allNullListProvider
+     *
+     * @param array<string,mixed> $variables
+     */
+    public function testTreatsAllNullListsAsDefined(string $template, array $variables, string $expansion): void
     {
         self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
@@ -729,7 +763,7 @@ final class UriTemplateTest extends TestCase
             'null map member skipped' => ['{?x*}', ['x' => ['a' => null, 'b' => 'c']], '?b=c'],
             'null member in simple list' => ['{x}', ['x' => ['red', null, 'blue']], 'red,blue'],
             'all null map members undefined' => ['X{.x}', ['x' => ['a' => null]], 'X'],
-            'all null list members undefined' => ['{#x}', ['x' => [null]], ''],
+            'all null list members defined' => ['{#x}', ['x' => [null]], '#'],
             'null nested query leaf skipped' => ['{?x*}', ['x' => ['a' => ['b' => null, 'c' => 'v']]], '?a%5Bc%5D=v'],
             'null member with invalid utf-8 key skipped' => ['{?x*}', ['x' => ["\xC3\x28" => null, 'kept' => 'v']], '?kept=v'],
             'nested null member with invalid utf-8 key skipped' => ['{?x*}', ['x' => ['k' => ["\xC3\x28" => null], 'kept' => 'v']], '?kept=v'],

@@ -54,11 +54,15 @@ undefined and omitted. Missing variables and variables set to `null` are treated
 as undefined and omitted.
 
 `null` members inside lists and maps are treated as undefined members and
-omitted, like top-level `null`. A list or map whose members are all `null` is
-treated as undefined and omitted, like an empty array. A list or map with at
-least one defined member is a defined, non-empty value: in named non-exploded
-expansions, `=` follows the name even when every member expands to the empty
-string, so `{;l}` with `['l' => ['']]` expands to `;l=`. See the [conformance
+omitted, like top-level `null`. A map whose members are all `null` is treated
+as undefined and omitted, like an empty array. A non-empty list whose members
+are all `null` is a defined variable with no defined members: the operator
+first string is still emitted, named forms render the name with the operator's
+empty-value form, and prefix modifiers are rejected as for any other list. A
+list or map with at least one defined member is a defined, non-empty value: in
+named non-exploded expansions, `=` follows the name even when every member
+expands to the empty string, so `{;l}` with `['l' => ['']]` expands to `;l=`.
+See the [conformance
 notes](uri-template-usage.md#specification-conformance-notes) for how the
 all-`null` rule maps to RFC 6570.
 
