@@ -424,11 +424,11 @@ UriTemplate::expand('{;m*}', ['m' => ['a' => '', 'b' => 'x']]);
 // 2.0: ;a;b=x
 ```
 
-Non-exploded path-style expansion of a list or map whose members all expand
-empty now appends `=` after the name. RFC 6570 treats a defined list or map as a
-non-empty value in named non-exploded expansions, so the empty joined member
-string is rendered as `name=`. Guzzle URI Template 1.x omitted the `=` and
-rendered a bare name.
+Non-exploded path-style expansion of a list or map containing defined members
+that all expand empty now appends `=` after the name. A composite value is
+empty only when it contains no defined members, so a joined member expansion
+that is an empty string is still rendered as `name=`. Guzzle URI Template 1.x
+omitted the `=` and rendered a bare name.
 
 ```php
 UriTemplate::expand('{;l}', ['l' => ['']]);
