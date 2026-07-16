@@ -391,6 +391,46 @@ path-style parameter expansions. Lists containing arrays are also invalid. If a
 nested query array contains objects, convert them to scalar values before
 expansion.
 
+#### Path-Style Parameter Expansion
+
+Path-style parameter expansion (`{;var}`) renders empty values in two ways that
+differ from Guzzle URI Template 1.x. Both changes are scoped to the `;`
+operator; the query operators `{?var*}` and `{&var*}` still render `name=` for
+empty members.
+
+Exploded path-style maps with empty-string members now render a bare name
+instead of `name=`, following the RFC 6570 section 3.2.1 rule that omits the `=`
+for an empty value under operators that do not indicate form-style parameters.
+Guzzle URI Template 1.x appended `=` to every exploded member.
+
+```php
+UriTemplate::expand('{;m*}', ['m' => ['a' => '', 'b' => 'x']]);
+
+// 1.x: ;a=;b=x
+// 2.0: ;a;b=x
+```
+
+Non-exploded path-style expansion of a list or map whose members all expand
+empty now appends `=` after the name. RFC 6570 treats a defined list or map as a
+non-empty value in named non-exploded expansions, so the empty joined member
+string is rendered as `name=`. Guzzle URI Template 1.x omitted the `=` and
+rendered a bare name.
+
+```php
+UriTemplate::expand('{;l}', ['l' => ['']]);
+
+// 1.x: ;l
+// 2.0: ;l=
+```
+
+A scalar empty string is unchanged and still renders a bare name under `;`.
+
+```php
+UriTemplate::expand('{;x}', ['x' => '']);
+
+// ;x
+```
+
 #### Reserved Expansion
 
 Reserved expansion (`{+var}`) and fragment expansion (`{#var}`) intentionally
@@ -418,6 +458,32 @@ UriTemplate::expand('{id}', ['id' => 'admin%2F']);
 UriTemplate::expand('{+id}', ['id' => 'admin%2F']);
 
 // admin%2F
+```
+
+Reserved and fragment expansion now encode map keys with the operator's allow
+set, the same set used for values, so reserved characters in a key are preserved
+instead of percent-encoded. Guzzle URI Template 1.x always percent-encoded map
+keys, even under `{+var}` and `{#var}`. This applies to both exploded and joined
+maps.
+
+```php
+UriTemplate::expand('{+x*}', ['x' => ['a/b' => 'v']]);
+
+// 1.x: a%2Fb=v
+// 2.0: a/b=v
+
+UriTemplate::expand('{+x}', ['x' => ['a/b' => 'v']]);
+
+// 1.x: a%2Fb,v
+// 2.0: a/b,v
+```
+
+Simple expansion continues to percent-encode reserved characters in map keys.
+
+```php
+UriTemplate::expand('{x}', ['x' => ['a/b' => 'v']]);
+
+// a%2Fb,v
 ```
 
 Templates should generally be application-controlled. If templates come from
