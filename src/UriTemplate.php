@@ -53,7 +53,7 @@ final class UriTemplate
     }
 
     /**
-     * @param array<string, mixed> $variables Variables to use in the template expansion
+     * @param array<array-key, mixed> $variables Variables to use in the template expansion
      *
      * @throws \InvalidArgumentException When the template syntax or referenced variable shape is invalid
      * @throws \RuntimeException
@@ -791,7 +791,7 @@ final class UriTemplate
      * variables are ignored by the expansion process, so they are skipped
      * before varspec shape validation.
      *
-     * @param array<string, mixed> $variables
+     * @param array<array-key, mixed> $variables
      */
     private static function isUndefinedVariable(array $variables, string $name): bool
     {

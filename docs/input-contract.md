@@ -24,6 +24,15 @@ UriTemplate::expand('/users/{user.id}', [
 ]);
 ```
 
+RFC 6570 variable names may consist entirely of digits, such as `{0}`. PHP
+coerces array keys that are canonical decimal integer strings to integers, so
+`['0' => 'x']` and `[0 => 'x']` are the same key. An all-numeric variable name
+is matched against that integer key and expands normally. A name that is not
+a canonical decimal integer string, such as `{01}`, is not coerced; it must
+appear under the exact string key `'01'`. Coercion follows the platform
+integer range: a numeric name beyond `PHP_INT_MAX`, such as `{2147483648}` on
+32-bit PHP, stays a string key and must match exactly.
+
 ## Values
 
 Supported variable values are:
