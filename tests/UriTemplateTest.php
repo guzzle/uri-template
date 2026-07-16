@@ -897,6 +897,22 @@ final class UriTemplateTest extends TestCase
         $this->assertInvalidTemplate('{?x*}', ['x' => ['a' => $tooDeep]]);
     }
 
+    public function testAcceptsMaximumDepthArrayVariables(): void
+    {
+        $deepest = 'leaf';
+        $key = 'a';
+
+        for ($i = 0; $i < 64; ++$i) {
+            $deepest = ['x' => $deepest];
+            $key .= '%5Bx%5D';
+        }
+
+        self::assertSame(
+            '?'.$key.'=leaf',
+            UriTemplate::expand('{?x*}', ['x' => ['a' => $deepest]])
+        );
+    }
+
     /**
      * @return array<string,array{0:string, 1:array<string,mixed>, 2:string}>
      */

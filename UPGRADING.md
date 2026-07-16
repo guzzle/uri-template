@@ -304,7 +304,7 @@ members are all `null` is treated as a wholly undefined variable.
 
 Unsupported values throw `InvalidArgumentException` before expansion. This
 includes resources, closures, non-stringable objects, unsupported nested arrays,
-recursive arrays, and arrays nested too deeply.
+recursive arrays, and arrays nested more than 64 levels deep.
 
 Variable values must now be valid UTF-8. Invalid byte sequences throw
 `InvalidArgumentException` instead of being percent-encoded byte by byte. Encode
@@ -503,6 +503,11 @@ UriTemplate::expand('{x}', ['x' => ['a/b' => 'v']]);
 Templates should generally be application-controlled. If templates come from
 users or remote systems, treat them as policy input because template syntax
 controls the structure of the expanded URI.
+
+Values expanded with `{+var}` and `{#var}` keep the URI meaning of reserved
+characters, so untrusted values can inject scheme, authority, path, query, and
+fragment structure into the expanded URI. Use simple expansion for untrusted
+values, or validate them before expansion.
 
 #### UriTemplate Instantiation
 
