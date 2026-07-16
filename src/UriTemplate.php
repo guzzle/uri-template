@@ -60,19 +60,20 @@ final class UriTemplate
      */
     public static function expand(string $template, array $variables): string
     {
-        $template = self::prepareTemplate($template);
+        [$template, $references] = self::prepareTemplate($template);
 
-        if (!\str_contains($template, '{')) {
+        if ($references === []) {
             return $template;
         }
 
-        $callback = self::expandMatchCallback($variables);
+        $expressions = self::parseExpressions($references);
+        $values = self::formValues($references, $expressions, $variables);
 
         /** @var string|null */
         $result = \preg_replace_callback(
             '/\{([^\}]+)\}/',
-            static function (array $matches) use ($callback): string {
-                return $callback($matches);
+            static function (array $matches) use ($expressions, $values): string {
+                return self::expandMatch($matches, $expressions, $values);
             },
             $template
         );
@@ -85,23 +86,143 @@ final class UriTemplate
     }
 
     /**
-     * @param array<string, mixed> $variables Variables to use in the template expansion
+     * Parse and validate every expression of the template, in template order.
      *
-     * @return \Closure(array{0: string, 1: string}): string
+     * Expression text such as "0" is a canonical decimal integer string,
+     * which PHP stores under an integer array key.
+     *
+     * @param list<string> $references The expression text of each expression, in template order
+     *
+     * @return array<array-key, array{operator:string, values:array<array{value:string, modifier:(''|'*'|':'), position?:int}>}>
      */
-    private static function expandMatchCallback(array $variables): \Closure
+    private static function parseExpressions(array $references): array
     {
-        return static function (array $matches) use ($variables): string {
-            /** @var array{0: string, 1: string} $matches */
-            return self::expandMatch($matches, $variables);
-        };
+        $expressions = [];
+
+        foreach ($references as $expression) {
+            if (!isset($expressions[$expression])) {
+                $expressions[$expression] = self::parseExpression($expression);
+            }
+        }
+
+        return $expressions;
     }
 
-    private static function prepareTemplate(string $template): string
+    /**
+     * Detach and form every referenced variable value before expansion.
+     *
+     * Spec section 3: each variable's value is formed prior to template
+     * expansion. Definedness is bound and raw values are detached, in
+     * template order, before any __toString() method runs, so an object
+     * converted while values are formed cannot change another referenced
+     * variable through a PHP reference. Stringable objects are then
+     * converted to strings and scalars to their expansion strings, once
+     * per value position, in template order, and string values and map
+     * keys are validated as UTF-8 in the same pass, so a repeated variable
+     * keeps a static value throughout the expansion and value errors
+     * surface in member order. Undefined variables are stored as null.
+     *
+     * @param list<string>                                                                                                      $references  The expression text of each expression, in template order
+     * @param array<array-key, array{operator:string, values:array<array{value:string, modifier:(''|'*'|':'), position?:int}>}> $expressions
+     * @param array<array-key, mixed>                                                                                           $variables
+     *
+     * @return array<array-key, mixed>
+     */
+    private static function formValues(array $references, array $expressions, array $variables): array
+    {
+        /** @var array<array-key, mixed> $detached */
+        $detached = [];
+        /** @var list<array{string, array{value:string, modifier:(''|'*'|':'), position?:int}, string, string}> $order */
+        $order = [];
+
+        foreach ($references as $expression) {
+            foreach ($expressions[$expression]['values'] as $varspec) {
+                $name = $varspec['value'];
+
+                if (\array_key_exists($name, $detached)) {
+                    continue;
+                }
+
+                if (self::isUndefinedVariable($variables, $name)) {
+                    $detached[$name] = null;
+                    continue;
+                }
+
+                $operator = $expressions[$expression]['operator'];
+                /** @var mixed $raw */
+                $raw = $variables[$name];
+                $membersMayNest = \is_array($raw)
+                    && $varspec['modifier'] === '*'
+                    && ($operator === '?' || $operator === '&')
+                    && self::isAssoc($raw);
+
+                $detached[$name] = self::detachValue($raw, $membersMayNest, 0);
+                $order[] = [$name, $varspec, $expression, $operator];
+            }
+        }
+
+        $values = $detached;
+
+        foreach ($order as [$name, $varspec, $expression, $operator]) {
+            $values[$name] = self::normalizeVariableShape($varspec, $detached[$name], $expression, $operator);
+        }
+
+        return $values;
+    }
+
+    /**
+     * Detach a raw variable value from the caller's variables array.
+     *
+     * Admissible arrays are rebuilt so that PHP references held by the
+     * caller cannot change the value after it has been read, and scalars
+     * are copied. Object handles are kept as they are; stringable objects
+     * are resolved later, while values are formed. Array members outside a
+     * nested query array, and levels deeper than the nesting limit, are
+     * kept as they are: shape validation rejects them by type or depth
+     * without reading their contents, and rebuilding them could
+     * materialize a copy-on-write shared array graph of unbounded logical
+     * size.
+     *
+     * @param mixed $value
+     *
+     * @return mixed
+     */
+    private static function detachValue($value, bool $membersMayNest, int $depth)
+    {
+        if (!\is_array($value) || $depth > self::MAX_VARIABLE_DEPTH) {
+            return $value;
+        }
+
+        /** @var array<array-key, mixed> $detached */
+        $detached = [];
+
+        /** @var mixed $member */
+        foreach ($value as $key => $member) {
+            $detached[$key] = \is_array($member) && !$membersMayNest
+                ? $member
+                : self::detachValue($member, true, $depth + 1);
+        }
+
+        return $detached;
+    }
+
+    /**
+     * Validate and encode the template's literal text and collect its
+     * distinct expressions in first-occurrence order.
+     *
+     * Only distinct expression text is collected, so a template that
+     * repeats an expression many times does not allocate storage
+     * proportional to the number of occurrences.
+     *
+     * @return array{string, list<string>}
+     */
+    private static function prepareTemplate(string $template): array
     {
         $length = \strlen($template);
         $prepared = '';
         $literalStart = 0;
+        $references = [];
+        $seen = [];
 
         for ($offset = 0; $offset < $length; ++$offset) {
             $char = $template[$offset];
@@ -128,6 +249,11 @@ final class UriTemplate
                     throw self::invalidTemplate($offset, 'nested expressions are not allowed');
                 }
 
+                if (!isset($seen[$expression])) {
+                    $seen[$expression] = true;
+                    $references[] = $expression;
+                }
+
                 $prepared .= \substr($template, $offset, $end - $offset + 1);
                 $offset = $end;
                 $literalStart = $end + 1;
@@ -140,7 +266,7 @@ final class UriTemplate
             }
         }
 
-        return $prepared.self::encodeLiteralSegment(\substr($template, $literalStart), $literalStart);
+        return [$prepared.self::encodeLiteralSegment(\substr($template, $literalStart), $literalStart), $references];
     }
 
     private static function invalidTemplate(int $offset, string $message): \InvalidArgumentException
@@ -155,15 +281,16 @@ final class UriTemplate
     /**
      * Process an expansion
      *
-     * @param array<string, mixed>        $variables Variables to use in the template expansion
-     * @param array{0: string, 1: string} $matches   Matches met in the preg_replace_callback
+     * @param array{0: string, 1: string}                                                                                       $matches     Matches met in the preg_replace_callback
+     * @param array<array-key, array{operator:string, values:array<array{value:string, modifier:(''|'*'|':'), position?:int}>}> $expressions Parsed expressions of the template
+     * @param array<array-key, mixed>                                                                                           $values      Variable values formed before the expansion began
      *
      * @return string Returns the replacement string
      */
-    private static function expandMatch(array $matches, array $variables): string
+    private static function expandMatch(array $matches, array $expressions, array $values): string
     {
         $replacements = [];
-        $parsed = self::parseExpression($matches[1]);
+        $parsed = $expressions[$matches[1]];
         $prefix = self::OPERATOR_HASH[$parsed['operator']]['prefix'];
         $joiner = self::OPERATOR_HASH[$parsed['operator']]['joiner'];
         $useQuery = self::OPERATOR_HASH[$parsed['operator']]['query'];
@@ -172,13 +299,18 @@ final class UriTemplate
         $hasDefinedVariable = false;
 
         foreach ($parsed['values'] as $value) {
-            if (self::isUndefinedVariable($variables, $value['value'])) {
+            if ($values[$value['value']] === null) {
                 continue;
             }
 
-            $variable = $variables[$value['value']];
+            /** @var mixed $variable */
+            $variable = $values[$value['value']];
 
-            self::assertVariableShape($value, $variable, $matches[1], $parsed['operator']);
+            // Varspec-specific checks, such as the prefix-on-composite
+            // rule, run on every occurrence against the formed value, so an
+            // occurrence with an inapplicable modifier throws no matter
+            // where it appears in the template.
+            self::normalizeVariableShape($value, $variable, $matches[1], $parsed['operator']);
 
             $actuallyUseQuery = $useQuery;
             $expanded = '';
@@ -220,10 +352,11 @@ final class UriTemplate
                         if ($isAssoc) {
                             if ($isNestedArray) {
                                 // Nested arrays must allow for deeply nested structures.
-                                // Float members are stringified first because
-                                // http_build_query's own float conversion
-                                // honors LC_NUMERIC before PHP 8.0.
-                                $var = \http_build_query([$rawKey => self::stringifyNestedFloats($var)], '', '&', \PHP_QUERY_RFC3986);
+                                // Members were converted to their expansion
+                                // strings while values were formed, so
+                                // http_build_query's own locale-sensitive
+                                // float conversion is never used.
+                                $var = \http_build_query([$rawKey => $var], '', '&', \PHP_QUERY_RFC3986);
                                 if ($var === '') {
                                     continue;
                                 }
@@ -359,28 +492,6 @@ final class UriTemplate
         }
 
         return $string;
-    }
-
-    /**
-     * Stringify float members of a nested query array so http_build_query
-     * does not apply its own locale-sensitive float conversion on PHP 7.4.
-     *
-     * @param array<array-key, mixed> $value
-     *
-     * @return array<array-key, mixed>
-     */
-    private static function stringifyNestedFloats(array $value): array
-    {
-        /** @var mixed $member */
-        foreach ($value as $key => $member) {
-            if (\is_float($member)) {
-                $value[$key] = self::stringifyFloat($member);
-            } elseif (\is_array($member)) {
-                $value[$key] = self::stringifyNestedFloats($member);
-            }
-        }
-
-        return $value;
     }
 
     /**
@@ -566,17 +677,29 @@ final class UriTemplate
     }
 
     /**
+     * Validate a referenced variable and return its snapshot.
+     *
+     * Stringable objects, including stringable members of lists and maps,
+     * are converted to strings exactly once, at validation time, so a
+     * repeated variable keeps a static value throughout the expansion and a
+     * mutating __toString() cannot bypass validation. Later occurrences of
+     * the same variable revalidate the returned snapshot against their own
+     * varspec and discard the result, so varspec-specific checks such as
+     * the prefix-on-composite rule run on every occurrence.
+     *
      * @param array{value:string, modifier:(''|'*'|':'), position?:int} $varspec
      * @param mixed                                                     $variable
+     *
+     * @return mixed
      */
-    private static function assertVariableShape(array $varspec, $variable, string $expression, string $operator): void
+    private static function normalizeVariableShape(array $varspec, $variable, string $expression, string $operator)
     {
         if (self::isScalarLike($variable)) {
             if (\is_float($variable) && !\is_finite($variable)) {
                 throw self::invalidVariable($expression, $varspec['value'], 'non-finite floats are not supported');
             }
 
-            return;
+            return self::formScalarLike($variable, $expression, $varspec['value']);
         }
 
         if (!\is_array($variable)) {
@@ -598,17 +721,13 @@ final class UriTemplate
             );
         }
 
-        $isAssoc = self::isAssoc($variable);
-
-        if (!$isAssoc) {
-            self::assertListShape($varspec['value'], $variable, $expression);
-
-            return;
+        if (!self::isAssoc($variable)) {
+            return self::normalizeListShape($varspec['value'], $variable, $expression);
         }
 
         $allowNestedArrays = $varspec['modifier'] === '*' && ($operator === '?' || $operator === '&');
 
-        self::assertMapShape($varspec['value'], $variable, $expression, $allowNestedArrays, 0);
+        return self::normalizeMapShape($varspec['value'], $variable, $expression, $allowNestedArrays, 0);
     }
 
     /**
@@ -620,10 +739,55 @@ final class UriTemplate
     }
 
     /**
-     * @param array<array-key, mixed> $value
+     * Form a null, scalar, or stringable value while values are formed.
+     *
+     * Stringable objects are resolved to strings once per value position
+     * here, so their __toString() methods are never called again during
+     * expansion, and scalars are converted to their expansion strings, so
+     * repeated occurrences render identically even when a __toString()
+     * method changes the float precision or the locale mid-expansion.
+     * String values are validated as UTF-8 in the same pass, per spec
+     * section 1.6, so all value errors surface in member order while
+     * values are formed. Null is returned unchanged because it marks an
+     * undefined member.
+     *
+     * @param mixed $value
      */
-    private static function assertListShape(string $path, array $value, string $expression): void
+    private static function formScalarLike($value, string $expression, string $path): ?string
     {
+        if ($value === null) {
+            return null;
+        }
+
+        if (\is_object($value) && \method_exists($value, '__toString')) {
+            $value = (string) $value;
+        }
+
+        if (\is_string($value)) {
+            self::assertValidVariableUtf8($value, $expression, $path);
+
+            return $value;
+        }
+
+        return self::stringifyValue($value);
+    }
+
+    /**
+     * Validate a list variable and snapshot its members.
+     *
+     * Rebuilding the list resolves stringable members once per value
+     * position and breaks PHP references held by the caller's array, so
+     * members mutated after the snapshot is taken cannot change the
+     * expansion.
+     *
+     * @param array<array-key, mixed> $value
+     *
+     * @return array<array-key, mixed>
+     */
+    private static function normalizeListShape(string $path, array $value, string $expression): array
+    {
+        $normalized = [];
+
         foreach ($value as $index => $member) {
             $memberPath = \sprintf('%s[%d]', $path, $index);
 
@@ -632,6 +796,7 @@ final class UriTemplate
                     throw self::invalidVariable($expression, $memberPath, 'non-finite floats are not supported');
                 }
 
+                $normalized[] = self::formScalarLike($member, $expression, $memberPath);
                 continue;
             }
 
@@ -641,35 +806,65 @@ final class UriTemplate
                 \sprintf('expected scalar or stringable object; got %s', \get_debug_type($member))
             );
         }
+
+        return $normalized;
     }
 
     /**
+     * Validate a map variable and snapshot its members.
+     *
+     * Rebuilding the map resolves stringable members once per value
+     * position and breaks PHP references held by the caller's array, so
+     * members mutated after the snapshot is taken cannot change the
+     * expansion.
+     *
      * @param array<array-key, mixed> $value
+     *
+     * @return array<array-key, mixed>
      */
-    private static function assertMapShape(
+    private static function normalizeMapShape(
         string $path,
         array $value,
         string $expression,
         bool $allowNestedArrays,
         int $depth
-    ): void {
+    ): array {
         if ($depth > self::MAX_VARIABLE_DEPTH) {
             throw self::invalidVariable($expression, $path, 'maximum variable nesting depth exceeded');
         }
 
+        $normalized = [];
+
         foreach ($value as $key => $member) {
+            if ($member === null) {
+                // Spec section 2.4.2: only pairs with defined values are
+                // present in the expansion, so null members are omitted
+                // before their keys are validated, matching the handling
+                // of null members in nested query arrays.
+                $normalized[$key] = null;
+                continue;
+            }
+
             $memberPath = \sprintf('%s[%s]', $path, (string) $key);
 
-            if ($member === null || self::isScalarLike($member)) {
+            if (\is_string($key)) {
+                // Spec section 3.2.1: pair names are encoded like simple
+                // string values, so keys are validated as UTF-8 while
+                // values are formed, before their members.
+                self::assertValidVariableUtf8($key, $expression, $memberPath);
+            }
+
+            if (self::isScalarLike($member)) {
                 if (\is_float($member) && !\is_finite($member)) {
                     throw self::invalidVariable($expression, $memberPath, 'non-finite floats are not supported');
                 }
 
+                $normalized[$key] = self::formScalarLike($member, $expression, $memberPath);
                 continue;
             }
 
             if (\is_array($member) && $allowNestedArrays) {
-                self::assertNestedQueryShape($memberPath, $member, $expression, $depth + 1);
+                $normalized[$key] = self::normalizeNestedQueryShape($memberPath, $member, $expression, $depth + 1);
                 continue;
             }
 
@@ -679,16 +874,29 @@ final class UriTemplate
                 \sprintf('expected scalar%s; got %s', $allowNestedArrays ? ', stringable object, or nested array' : ' or stringable object', \get_debug_type($member))
             );
         }
+
+        return $normalized;
     }
 
     /**
+     * Validate a nested query array and snapshot its members.
+     *
+     * Nested query arrays accept only scalar leaves, so there are no
+     * stringable objects to resolve, but rebuilding the array breaks PHP
+     * references held by the caller's array, so members mutated after the
+     * snapshot is taken cannot change the expansion.
+     *
      * @param array<array-key, mixed> $value
+     *
+     * @return array<array-key, mixed>
      */
-    private static function assertNestedQueryShape(string $path, array $value, string $expression, int $depth): void
+    private static function normalizeNestedQueryShape(string $path, array $value, string $expression, int $depth): array
     {
         if ($depth > self::MAX_VARIABLE_DEPTH) {
             throw self::invalidVariable($expression, $path, 'maximum variable nesting depth exceeded');
         }
+
+        $normalized = [];
 
         foreach ($value as $key => $member) {
             if ($member === null) {
@@ -696,6 +904,7 @@ final class UriTemplate
                 // values are present in the expansion, so null members are
                 // omitted before their keys are validated, matching the
                 // handling of null members in top-level maps.
+                $normalized[$key] = null;
                 continue;
             }
 
@@ -714,11 +923,17 @@ final class UriTemplate
                     throw self::invalidVariable($expression, $memberPath, 'non-finite floats are not supported');
                 }
 
+                // Scalars are converted to their expansion strings while
+                // values are formed, so http_build_query never applies its
+                // own locale-sensitive float conversion and repeated
+                // occurrences render identically even when the float
+                // precision changes mid-expansion.
+                $normalized[$key] = self::stringifyValue($member);
                 continue;
             }
 
             if (\is_array($member)) {
-                self::assertNestedQueryShape($memberPath, $member, $expression, $depth + 1);
+                $normalized[$key] = self::normalizeNestedQueryShape($memberPath, $member, $expression, $depth + 1);
                 continue;
             }
 
@@ -728,6 +943,8 @@ final class UriTemplate
                 \sprintf('expected scalar or nested array; got %s', \get_debug_type($member))
             );
         }
+
+        return $normalized;
     }
 
     /**

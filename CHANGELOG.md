@@ -22,6 +22,12 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Non-empty lists whose members are all null are now treated as defined variables
 - Variable specifier whitespace padding is now detected with the real whitespace set, including form feed
 - `UriTemplate` now rejects native PHP serialization and unserialization
+- Referenced variable values are now detached and formed before expansion begins
+- Template syntax is now validated for every expression before variable values are formed
+- Stringable objects are now converted to strings once per value position while values are formed
+- Invalid UTF-8 in variable values and map keys is now rejected while values are formed
+- Finite floats are now converted to their expansion strings while values are formed
+- Exceptions thrown by `__toString()` now surface while values are formed, before any output exists
 
 ### Fixed
 

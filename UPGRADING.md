@@ -352,6 +352,38 @@ UriTemplate::expand('/events{?date}', [
 ]);
 ```
 
+Referenced variable values are detached from the variables array and formed
+before expansion begins, as required by RFC 6570 section 3. Definedness is
+bound and raw values are read before any `__toString()` method runs, so an
+object cannot change another referenced variable through a PHP reference.
+Stringable objects are then converted to strings once per value position, in
+template order, and scalars are converted to their expansion strings, so a
+repeated variable keeps a static value even when a `__toString()` method
+changes the float precision or the locale mid-expansion. String values and
+map keys are validated as UTF-8 while values are formed, so value errors
+surface in member order. Guzzle URI Template 1.x called
+`__toString()` again for every occurrence, so an object returning different
+values could expand differently within one template. Exceptions thrown by
+`__toString()` propagate unchanged; they surface while values are formed,
+after template syntax validation and before any part of the URI is produced,
+and may preempt validation errors for values formed later:
+
+```php
+$counter = new class() {
+    private $n = 0;
+
+    public function __toString(): string
+    {
+        return (string) ++$this->n;
+    }
+};
+
+UriTemplate::expand('{x}-{x}', ['x' => $counter]);
+
+// 1.x: 1-2
+// 2.0: 1-1
+```
+
 #### Array Values
 
 PHP arrays are classified by shape. Arrays whose keys are exactly `0` through

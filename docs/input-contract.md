@@ -35,6 +35,19 @@ Supported variable values are:
 - maps containing scalar or stringable values
 - nested arrays in maps for exploded query-style expansions, with scalar leaves
 
+Referenced variable values are detached from the variables array and formed
+before expansion begins. Definedness is bound and raw values are read before
+any `__toString()` method runs, so an object cannot change another referenced
+variable through a PHP reference. Stringable objects are then converted to
+strings once per value position, in template order, and scalars are converted
+to their expansion strings, so a repeated variable keeps a static value even
+when a `__toString()` method changes the float precision or the locale
+mid-expansion. String values and map keys are validated as UTF-8 while values
+are formed, so value errors surface in member order. Exceptions thrown by `__toString()` propagate unchanged; they
+surface while values are formed, after template syntax validation and before
+any part of the URI is produced, and may preempt validation errors for values
+formed later.
+
 Booleans expand as `1` and `0` at every nesting level.
 
 Floats expand using PHP's float-to-string conversion with the decimal separator
@@ -183,7 +196,9 @@ limit, not invalid input; the threshold depends on the PCRE build and
 `pcre.jit` configuration.
 
 Exceptions thrown by a value object's `__toString()` method propagate unchanged;
-they are not converted to `InvalidArgumentException`.
+they are not converted to `InvalidArgumentException`. They surface while values
+are formed, once per expansion, after template syntax validation and before any
+part of the URI is produced.
 
 Catch `InvalidArgumentException` if templates or values come from outside your
 application:
