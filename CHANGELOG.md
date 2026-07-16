@@ -43,6 +43,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Fixed invalid UTF-8 in literal text reporting the offset of the literal segment instead of the first invalid byte
 - Fixed PCRE engine failures during literal text validation being reported as invalid UTF-8
 - Fixed PCRE engine failures during variable UTF-8 validation not being reported as runtime errors
+- Fixed PCRE engine failures during invalid UTF-8 offset recovery being reported as invalid UTF-8
 
 ### Removed
 

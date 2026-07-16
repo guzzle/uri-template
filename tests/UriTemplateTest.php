@@ -423,6 +423,29 @@ final class UriTemplateTest extends TestCase
         }
     }
 
+    public function testReportsEngineFailuresDuringLiteralOffsetRecoveryAsRuntimeException(): void
+    {
+        $previous = \ini_get('pcre.backtrack_limit');
+        self::assertNotFalse($previous);
+
+        $caught = null;
+
+        try {
+            // Forces the offset-recovery pattern in validUtf8PrefixLength()
+            // to fail while the primary tokenizer still reports invalid
+            // UTF-8, which PCRE detects before the match limit applies.
+            \ini_set('pcre.backtrack_limit', '0');
+            UriTemplate::expand("A\xC3", []);
+        } catch (\RuntimeException $e) {
+            $caught = $e;
+        } finally {
+            \ini_set('pcre.backtrack_limit', $previous);
+        }
+
+        self::assertNotNull($caught);
+        self::assertStringContainsString('Unable to process template', $caught->getMessage());
+    }
+
     /**
      * @return array<string,array{0:string, 1:array<string,mixed>, 2:string}>
      */

@@ -166,9 +166,10 @@ control bytes are escaped as `\xHH`; when the text contains invalid byte
 sequences, all bytes outside printable ASCII are escaped.
 
 `RuntimeException` is thrown when the PCRE engine fails while processing a
-template, for example when an extremely long variable name exhausts a PCRE
-resource limit. This indicates an environment limit, not invalid input; the
-threshold depends on the PCRE build and `pcre.jit` configuration.
+template, for example when an extremely long variable name or very large
+literal text exhausts a PCRE resource limit. This indicates an environment
+limit, not invalid input; the threshold depends on the PCRE build and
+`pcre.jit` configuration.
 
 Exceptions thrown by a value object's `__toString()` method propagate unchanged;
 they are not converted to `InvalidArgumentException`.

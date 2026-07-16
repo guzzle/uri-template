@@ -889,7 +889,13 @@ final class UriTemplate
             $matches
         );
 
-        return $result === 1 ? \strlen($matches[0]) : 0;
+        if ($result !== 1) {
+            // The pattern matches the empty prefix of every subject, so
+            // anything other than a match is a PCRE engine failure.
+            throw new \RuntimeException(\sprintf('Unable to process template: %s', \preg_last_error_msg()));
+        }
+
+        return \strlen($matches[0]);
     }
 
     private static function isAllowedAsciiLiteral(string $char): bool
