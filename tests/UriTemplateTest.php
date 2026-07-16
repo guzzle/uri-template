@@ -778,6 +778,7 @@ final class UriTemplateTest extends TestCase
             'stringable object' => ['{x}', ['x' => new StringableValue('ok')], 'ok'],
             'stringable object in list' => ['{x}', ['x' => [new StringableValue('ok')]], 'ok'],
             'stringable object in map' => ['{?x*}', ['x' => ['a' => new StringableValue('ok')]], '?a=ok'],
+            'empty stringable in exploded path map' => ['{/x*}', ['x' => ['name' => new StringableValue('')]], '/name'],
             'list' => ['{/x*}', ['x' => ['red', 'green']], '/red/green'],
             'map' => ['{?x*}', ['x' => ['a' => 'b']], '?a=b'],
             'nested exploded map extension' => ['{?x*}', ['x' => ['a' => ['b' => 'c']]], '?a%5Bb%5D=c'],
@@ -933,6 +934,270 @@ final class UriTemplateTest extends TestCase
     public function testIgnoresUnusedInvalidVariableShapes(): void
     {
         self::assertSame('ok', UriTemplate::expand('{x}', ['x' => 'ok', 'unused' => new \stdClass()]));
+    }
+
+    /**
+     * @return array<string,array{0:string, 1:string}>
+     */
+    public static function repeatedStringableProvider(): array
+    {
+        return [
+            'same expression' => ['{x,x}', '1,1'],
+            'separate expressions' => ['{x}-{x}', '1-1'],
+            'mixed operators' => ['{x}{?x}', '1?x=1'],
+        ];
+    }
+
+    /**
+     * @dataProvider repeatedStringableProvider
+     */
+    public function testReusesStringableValuesForEveryOccurrence(string $template, string $expansion): void
+    {
+        self::assertSame($expansion, UriTemplate::expand($template, ['x' => new CountingStringable()]));
+    }
+
+    public function testCallsToStringExactlyOncePerExpansion(): void
+    {
+        $counter = new CountingStringable();
+
+        self::assertSame('11?x=1', UriTemplate::expand('{x}{x}{?x}', ['x' => $counter]));
+        self::assertSame(1, $counter->calls);
+
+        self::assertSame('22?x=2', UriTemplate::expand('{x}{x}{?x}', ['x' => $counter]));
+        self::assertSame(2, $counter->calls);
+    }
+
+    /**
+     * @return array<string,array{0:string}>
+     */
+    public static function definednessTemplateProvider(): array
+    {
+        return [
+            'undefined referenced first' => ['{x}{y}{x}'],
+            'undefined referenced last' => ['{y}{x}'],
+        ];
+    }
+
+    /**
+     * @dataProvider definednessTemplateProvider
+     */
+    public function testBindsDefinednessBeforeValuesAreFormed(string $template): void
+    {
+        $slot = null;
+        $mutator = new SideEffectStringable('v', static function () use (&$slot): void {
+            $slot = 'now defined';
+        });
+
+        self::assertSame('v', UriTemplate::expand($template, ['x' => &$slot, 'y' => $mutator]));
+    }
+
+    public function testDetachesValuesBeforeValuesAreFormed(): void
+    {
+        $slot = 'before';
+        $mutator = new SideEffectStringable('first', static function () use (&$slot): void {
+            $slot = 'after';
+        });
+        $variables = ['a' => $mutator, 'b' => &$slot];
+
+        self::assertSame('first-before', UriTemplate::expand('{a}-{b}', $variables));
+
+        $slot = 'before';
+
+        self::assertSame('before-first-before', UriTemplate::expand('{b}-{a}-{b}', $variables));
+    }
+
+    public function testFormsFloatsBeforeExpansionBegins(): void
+    {
+        $precision = (string) \ini_get('precision');
+        $mutator = new SideEffectStringable('M', static function (): void {
+            \ini_set('precision', '3');
+        });
+
+        try {
+            \ini_set('precision', '14');
+
+            self::assertSame(
+                '1.23456789-M-1.23456789',
+                UriTemplate::expand('{x}-{m}-{x}', ['x' => 1.23456789, 'm' => $mutator])
+            );
+
+            \ini_set('precision', '14');
+
+            self::assertSame(
+                '?a%5Bb%5D=1.23456789M&a%5Bb%5D=1.23456789',
+                UriTemplate::expand('{?q*}{m}{&q*}', ['q' => ['a' => ['b' => 1.23456789]], 'm' => $mutator])
+            );
+        } finally {
+            \ini_set('precision', $precision);
+        }
+    }
+
+    public function testValidatesEveryExpressionBeforeValuesAreFormed(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('unsupported operator');
+
+        UriTemplate::expand('{x}{!y}', ['x' => new \stdClass()]);
+    }
+
+    public function testValidatesStringValuesWhileValuesAreFormed(): void
+    {
+        $throwing = new SideEffectStringable('v', static function (): void {
+            throw new \DomainException('should not be reached');
+        });
+
+        try {
+            UriTemplate::expand('{a}{b}', ['a' => "\xC3\x28", 'b' => $throwing]);
+            self::fail('Expected an InvalidArgumentException.');
+        } catch (\InvalidArgumentException $e) {
+            self::assertStringContainsString('must be valid UTF-8', $e->getMessage());
+        }
+    }
+
+    public function testBindsRejectionsBeforeValuesAreFormed(): void
+    {
+        $member = new \stdClass();
+        $mutator = new SideEffectStringable('a', static function () use (&$member): void {
+            $member = 'now-valid';
+        });
+
+        try {
+            UriTemplate::expand('{a}{b}{b}', ['a' => $mutator, 'b' => [&$member]]);
+            self::fail('Expected an InvalidArgumentException.');
+        } catch (\InvalidArgumentException $e) {
+            self::assertStringContainsString('expected scalar or stringable object; got stdClass', $e->getMessage());
+        }
+
+        self::assertSame('now-valid', $member);
+    }
+
+    public function testRejectsSharedArrayGraphMembersWithoutMaterializingThem(): void
+    {
+        $graph = ['a', 'b'];
+        for ($i = 0; $i < 25; ++$i) {
+            $graph = [$graph, $graph];
+        }
+
+        $start = \microtime(true);
+
+        try {
+            UriTemplate::expand('{x}', ['x' => $graph]);
+            self::fail('Expected an InvalidArgumentException.');
+        } catch (\InvalidArgumentException $e) {
+            self::assertStringContainsString('expected scalar or stringable object; got array', $e->getMessage());
+        }
+
+        self::assertLessThan(1.0, \microtime(true) - $start);
+    }
+
+    public function testExpandsRepeatedExpressionsWithoutPerOccurrenceStorage(): void
+    {
+        $template = \str_repeat('{x}', 200000);
+
+        self::assertSame(\str_repeat('y', 200000), UriTemplate::expand($template, ['x' => 'y']));
+    }
+
+    public function testExpandsManyDistinctExpressionsWithoutRetainingParses(): void
+    {
+        $template = '';
+        for ($i = 0; $i < 20000; ++$i) {
+            $template .= '{v'.$i.'}';
+        }
+
+        self::assertSame('', UriTemplate::expand($template, []));
+    }
+
+    public function testSharesNestedQueryStructuresThatCannotChange(): void
+    {
+        $shared = ['v', 'w'];
+
+        self::assertSame(
+            '?a%5B0%5D%5B0%5D=v&a%5B0%5D%5B1%5D=w&a%5B1%5D%5B0%5D=v&a%5B1%5D%5B1%5D=w',
+            UriTemplate::expand('{?x*}', ['x' => ['a' => [$shared, $shared]]])
+        );
+    }
+
+    public function testRejectsReferenceCyclesWithoutMaterializingThem(): void
+    {
+        $cycle = [];
+        $cycle[0] = &$cycle;
+        $cycle[1] = &$cycle;
+
+        $this->assertInvalidTemplate('{?x*}', ['x' => ['k' => $cycle]]);
+    }
+
+    /**
+     * @return array<string,array{0:mixed}>
+     */
+    public static function detachedMutationProvider(): array
+    {
+        return [
+            'mutation to infinity' => [\INF],
+            'mutation to array' => [[]],
+        ];
+    }
+
+    /**
+     * @dataProvider detachedMutationProvider
+     *
+     * @param mixed $mutation
+     */
+    public function testListMembersAreDetachedBeforeValuesAreFormed($mutation): void
+    {
+        $slot = 'ok';
+        $mutator = new SideEffectStringable('first', static function () use (&$slot, $mutation): void {
+            $slot = $mutation;
+        });
+
+        self::assertSame('first,ok', UriTemplate::expand('{x}', ['x' => [$mutator, &$slot]]));
+    }
+
+    /**
+     * @return array<string,array{0:string, 1:array<string,mixed>}>
+     */
+    public static function repeatedVarspecPrefixOnCompositeProvider(): array
+    {
+        return [
+            'prefix before explode' => ['{x:1,x*}', ['x' => ['red', 'green']]],
+            'explode before prefix' => ['{x*,x:1}', ['x' => ['red', 'green']]],
+            'all null list prefix before simple' => ['{l:1}{l}', ['l' => [null]]],
+            'all null list prefix after simple' => ['{l}{l:1}', ['l' => [null]]],
+        ];
+    }
+
+    /**
+     * @dataProvider repeatedVarspecPrefixOnCompositeProvider
+     *
+     * @param array<string,mixed> $variables
+     */
+    public function testRejectsPrefixModifiersOnRepeatedCompositeOccurrences(string $template, array $variables): void
+    {
+        $this->assertInvalidTemplate($template, $variables);
+    }
+
+    public function testNestedQueryReferencesAreDetachedBeforeValuesAreFormed(): void
+    {
+        $leaf = 'safe';
+        $mutator = new SideEffectStringable('v', static function () use (&$leaf): void {
+            $leaf = 'evil';
+        });
+        $variables = ['m' => ['a' => ['b' => &$leaf]], 'x' => $mutator];
+
+        self::assertSame('?a%5Bb%5D=safev&a%5Bb%5D=safe', UriTemplate::expand('{?m*}{x}{&m*}', $variables));
+
+        $leaf = 'safe';
+
+        self::assertSame('v?a%5Bb%5D=safe', UriTemplate::expand('{x}{?m*}', $variables));
+    }
+
+    public function testNestedQueryReferenceMutationToInvalidValuesHasNoEffect(): void
+    {
+        $leaf = 'safe';
+        $mutator = new SideEffectStringable('v', static function () use (&$leaf): void {
+            $leaf = \INF;
+        });
+
+        self::assertSame('v?a%5Bb%5D=safe', UriTemplate::expand('{x}{?m*}', ['m' => ['a' => ['b' => &$leaf]], 'x' => $mutator]));
     }
 
     public function testRejectsRecursiveArrayVariables(): void
@@ -1337,6 +1602,36 @@ final class StringableValue
 
     public function __toString(): string
     {
+        return $this->value;
+    }
+}
+
+final class CountingStringable
+{
+    public int $calls = 0;
+
+    public function __toString(): string
+    {
+        return (string) ++$this->calls;
+    }
+}
+
+final class SideEffectStringable
+{
+    private string $value;
+
+    private \Closure $sideEffect;
+
+    public function __construct(string $value, \Closure $sideEffect)
+    {
+        $this->value = $value;
+        $this->sideEffect = $sideEffect;
+    }
+
+    public function __toString(): string
+    {
+        ($this->sideEffect)();
+
         return $this->value;
     }
 }
