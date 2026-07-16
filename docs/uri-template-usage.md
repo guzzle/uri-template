@@ -53,6 +53,11 @@ UriTemplate::expand('/files/{+path}', ['path' => 'a/b']);
 // /files/a/b
 ```
 
+Values expanded with `{+var}` and `{#var}` keep the URI meaning of reserved
+characters, so untrusted values can inject scheme, authority, path, query, and
+fragment structure into the expanded URI. Use simple expansion for untrusted
+values, or validate them before expansion.
+
 Fragment expansion (`{#var}`) prefixes the expanded value with `#` when the
 variable is defined:
 

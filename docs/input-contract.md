@@ -66,9 +66,15 @@ Arrays whose keys are exactly `0` through `n-1` in ascending insertion order
 expand as lists. All other arrays, including reordered, sparse, and mixed-key
 arrays, expand as maps. Map and list order follows PHP array insertion order.
 
+Because these arrays always expand as lists, a map whose member names are
+exactly the integers `0` through `n-1` cannot be expressed as a single variable
+value; such an array expands as a list. Reference each member with its own
+numeric variable name, such as `{?0,1}`, when the expanded URI must carry those
+names.
+
 Unsupported values include resources, closures, non-stringable objects,
-non-finite floats, recursive arrays, arrays nested too deeply, and nested
-arrays outside exploded query-style expansions. Unsupported values are
+non-finite floats, recursive arrays, arrays nested more than 64 levels deep, and
+nested arrays outside exploded query-style expansions. Unsupported values are
 validated only when the template references that variable.
 
 Variable values must be valid UTF-8. Invalid byte sequences throw
@@ -117,11 +123,12 @@ Nested arrays are accepted only as values inside map variables expanded with an
 exploded query or query-continuation expression, such as `{?filter*}` or
 `{&filter*}`.
 
-Nested query arrays must have scalar leaves. Recursive arrays, arrays nested too
-deeply, and nested objects are rejected. Nested `null` values are treated as
-undefined members and omitted. Omission happens before member validation, so
-the keys of omitted `null` members are not validated. Stringable objects are
-accepted as direct map values, but not as leaves inside nested query arrays.
+Nested query arrays must have scalar leaves and can be nested at most 64 levels
+deep below the top-level map. Recursive arrays, arrays nested more deeply, and
+nested objects are rejected. Nested `null` values are treated as undefined
+members and omitted. Omission happens before member validation, so the keys of
+omitted `null` members are not validated. Stringable objects are accepted as
+direct map values, but not as leaves inside nested query arrays.
 
 Nested query arrays use RFC 3986 query encoding with PHP bracket syntax:
 
@@ -188,6 +195,11 @@ try {
 Templates should generally be application-controlled. If templates come from
 users or remote systems, treat them as policy input and review them before
 expansion.
+
+Values expanded with `{+var}` and `{#var}` keep the URI meaning of reserved
+characters, so untrusted values can inject scheme, authority, path, query, and
+fragment structure into the expanded URI. Use simple expansion for untrusted
+values, or validate them before expansion.
 
 ## Related
 
