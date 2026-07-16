@@ -243,6 +243,20 @@ UriTemplate::expand('{/list*}', [
 // /red/green
 ```
 
+#### Exploded Map Values
+
+Exploded map members with empty-string values now render as the bare name under
+every operator except the form-style `?` and `&`, which keep `name=`, following
+the normative prose in RFC 6570 section 3.2.1. Guzzle URI Template 1.x rendered
+`name=` under every operator.
+
+```php
+UriTemplate::expand('{;m*}{/m*}{?m*}', ['m' => ['a' => '']]);
+
+// 1.x: ;a=/a=?a=
+// 2.0: ;a/a?a=
+```
+
 #### Variable Values
 
 Supported variable values are `null`, scalars, stringable objects, lists, and

@@ -225,10 +225,13 @@ final class UriTemplate
                                 if ($var === '') {
                                     continue;
                                 }
-                            } elseif ($useQuery) {
-                                $var = self::formatPair((string) $key, (string) $var, $ifemp);
                             } else {
-                                $var = \sprintf('%s=%s', (string) $key, (string) $var);
+                                // Spec section 3.2.1: every exploded pair
+                                // follows the operator's ifemp rule; the
+                                // non-normative appendix A algorithm, which
+                                // always renders name=value, conflicts and
+                                // is not followed.
+                                $var = self::formatPair((string) $key, (string) $var, $ifemp);
                             }
                         } elseif ($useQuery) {
                             $var = self::formatPair($value['value'], (string) $var, $ifemp);
@@ -254,9 +257,9 @@ final class UriTemplate
                     continue;
                 } elseif ($value['modifier'] === '*') {
                     $expanded = \implode($joiner, $kvp);
-                    // Spec appendix A: exploded members carry their own name
-                    // (and ifemp handling) above, so the expression-level
-                    // name must not be prepended again.
+                    // Spec section 3.2.1: exploded members carry their own
+                    // name (and ifemp handling) above, so the
+                    // expression-level name must not be prepended again.
                     $actuallyUseQuery = false;
                 } else {
                     $expanded = \implode(',', $kvp);
@@ -375,7 +378,7 @@ final class UriTemplate
      *
      * Spec section 3.2.1: a pair whose value is the empty string is rendered
      * as the name followed by the operator's ifemp string ("=" for the
-     * form-style "?" and "&" operators, nothing for ";").
+     * form-style "?" and "&" operators, nothing for all other operators).
      */
     private static function formatPair(string $name, string $value, string $ifemp): string
     {
