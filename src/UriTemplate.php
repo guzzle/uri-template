@@ -99,14 +99,16 @@ final class UriTemplate
      * throughout the expansion and value errors surface in member order.
      * Undefined variables are stored as null.
      *
-     * Values containing no references, floats, or stringable objects, and
-     * values whose shape is certain to be rejected, are shared instead of
-     * being rebuilt: copy-on-write semantics guarantee shared values
-     * cannot change, and sharing avoids materializing structures whose
-     * logical size exceeds their physical size, such as arrays repeating
-     * one shared subtree. Parsed expressions are not retained; expansion
-     * parses each occurrence again, so templates with many distinct
-     * expressions do not allocate storage proportional to their count.
+     * Values containing no references, floats, or stringable objects are
+     * shared instead of being rebuilt: copy-on-write semantics guarantee
+     * shared values cannot change, and sharing avoids materializing
+     * structures whose logical size exceeds their physical size, such as
+     * arrays repeating one shared subtree. Values whose shape is certain
+     * to be rejected are neither shared nor scanned; their rejection is
+     * captured while they are bound and thrown at their formation
+     * position. Parsed expressions are not retained; expansion parses
+     * each occurrence again, so templates with many distinct expressions
+     * do not allocate storage proportional to their count.
      *
      * @param list<string>            $references The distinct expression text, in first-occurrence order
      * @param array<array-key, mixed> $variables
@@ -117,7 +119,7 @@ final class UriTemplate
     {
         /** @var array<array-key, mixed> $values */
         $values = [];
-        /** @var list<array{string, array{value:string, modifier:(''|'*'|':'), position?:int}, string, string, bool}> $order */
+        /** @var list<array{string, array{value:string, modifier:(''|'*'|':'), position?:int}, string, string, bool, \InvalidArgumentException|\RuntimeException|null}> $order */
         $order = [];
 
         foreach ($references as $expression) {
@@ -137,8 +139,10 @@ final class UriTemplate
 
                 /** @var mixed $raw */
                 $raw = $variables[$name];
-                $form = self::valueNeedsForming($raw, 0)
-                    && !self::shapeGuaranteesRejection($varspec, $raw, $parsed['operator']);
+                $rejection = self::shapeGuaranteesRejection($varspec, $raw, $parsed['operator'])
+                    ? self::captureShapeRejection($varspec, $raw, $expression, $parsed['operator'])
+                    : null;
+                $form = $rejection === null && self::valueNeedsForming($raw, 0);
 
                 if ($form) {
                     $membersMayNest = \is_array($raw)
@@ -150,11 +154,15 @@ final class UriTemplate
                 }
 
                 $values[$name] = $raw;
-                $order[] = [$name, $varspec, $expression, $parsed['operator'], $form];
+                $order[] = [$name, $varspec, $expression, $parsed['operator'], $form, $rejection];
             }
         }
 
-        foreach ($order as [$name, $varspec, $expression, $operator, $form]) {
+        foreach ($order as [$name, $varspec, $expression, $operator, $form, $rejection]) {
+            if ($rejection !== null) {
+                throw $rejection;
+            }
+
             if ($form) {
                 $values[$name] = self::normalizeVariableShape($varspec, $values[$name], $expression, $operator);
             } else {
@@ -163,6 +171,32 @@ final class UriTemplate
         }
 
         return $values;
+    }
+
+    /**
+     * Capture the rejection for a value whose shape guarantees one.
+     *
+     * The exception is created while the value is bound, before any
+     * __toString() method runs, so references held by the caller cannot
+     * mutate a rejected value into an accepted shape, and it is thrown
+     * later, at the variable's formation position, so error precedence
+     * does not depend on how a value was classified. Engine failures
+     * surfaced while walking the value are deferred the same way.
+     *
+     * @param array{value:string, modifier:(''|'*'|':'), position?:int} $varspec
+     * @param mixed                                                     $variable
+     *
+     * @return \InvalidArgumentException|\RuntimeException|null
+     */
+    private static function captureShapeRejection(array $varspec, $variable, string $expression, string $operator): ?\Exception
+    {
+        try {
+            self::assertVariableShape($varspec, $variable, $expression, $operator);
+        } catch (\InvalidArgumentException|\RuntimeException $e) {
+            return $e;
+        }
+
+        return null;
     }
 
     /**

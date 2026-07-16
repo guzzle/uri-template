@@ -43,10 +43,10 @@ strings once per value position, in template order, and scalars are converted
 to their expansion strings, so a repeated variable keeps a static value even
 when a `__toString()` method changes the float precision or the locale
 mid-expansion. String values and map keys are validated as UTF-8 while values
-are formed, so value errors surface in member order. Exceptions thrown by `__toString()` propagate unchanged; they
-surface while values are formed, after template syntax validation and before
-any part of the URI is produced, and may preempt validation errors for values
-formed later.
+are formed, so value errors surface in member order. Exceptions thrown by
+`__toString()` propagate unchanged; they surface while values are formed, after
+template syntax validation and before any part of the URI is produced, and may
+preempt validation errors for values formed later.
 
 Booleans expand as `1` and `0` at every nesting level.
 

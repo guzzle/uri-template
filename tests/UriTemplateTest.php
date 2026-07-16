@@ -1054,14 +1054,40 @@ final class UriTemplateTest extends TestCase
         }
     }
 
+    public function testBindsRejectionsBeforeValuesAreFormed(): void
+    {
+        $member = new \stdClass();
+        $mutator = new SideEffectStringable('a', static function () use (&$member): void {
+            $member = 'now-valid';
+        });
+
+        try {
+            UriTemplate::expand('{a}{b}{b}', ['a' => $mutator, 'b' => [&$member]]);
+            self::fail('Expected an InvalidArgumentException.');
+        } catch (\InvalidArgumentException $e) {
+            self::assertStringContainsString('expected scalar or stringable object; got stdClass', $e->getMessage());
+        }
+
+        self::assertSame('now-valid', $member);
+    }
+
     public function testRejectsSharedArrayGraphMembersWithoutMaterializingThem(): void
     {
         $graph = ['a', 'b'];
-        for ($i = 0; $i < 21; ++$i) {
+        for ($i = 0; $i < 25; ++$i) {
             $graph = [$graph, $graph];
         }
 
-        $this->assertInvalidTemplate('{x}', ['x' => $graph]);
+        $start = \microtime(true);
+
+        try {
+            UriTemplate::expand('{x}', ['x' => $graph]);
+            self::fail('Expected an InvalidArgumentException.');
+        } catch (\InvalidArgumentException $e) {
+            self::assertStringContainsString('expected scalar or stringable object; got array', $e->getMessage());
+        }
+
+        self::assertLessThan(1.0, \microtime(true) - $start);
     }
 
     public function testExpandsRepeatedExpressionsWithoutPerOccurrenceStorage(): void
