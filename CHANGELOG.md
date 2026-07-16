@@ -37,6 +37,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Fixed path-style parameter explode rendering empty members as `name=` instead of bare `name`
 - Fixed map keys not using the operator's allow set under reserved and fragment expansion
 - Fixed map explode rendering empty members as `name=` instead of bare `name` for unnamed operators
+- Fixed the documented variables array type rejecting integer keys for numeric variable names
 - Fixed all-null maps throwing with prefix modifiers instead of being skipped as undefined
 - Fixed prefix modifiers splitting Unicode code points encoded as multiple pct-encoded triplets
 - Fixed path-style expansion of composites rendering bare `name` instead of `name=` for empty joined members

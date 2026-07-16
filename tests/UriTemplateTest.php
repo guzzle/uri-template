@@ -409,6 +409,30 @@ final class UriTemplateTest extends TestCase
         $this->assertInvalidTemplate($template);
     }
 
+    /**
+     * @return array<string,array{0:string, 1:array<array-key,mixed>, 2:string}>
+     */
+    public static function allNumericVariableNameProvider(): array
+    {
+        return [
+            'integer key' => ['{0}', [0 => 'x'], 'x'],
+            'non-canonical string key' => ['{01}', ['01' => 'x'], 'x'],
+            'largest integer key' => ['{'.\PHP_INT_MAX.'}', [\PHP_INT_MAX => 'x'], 'x'],
+            'beyond the integer range' => ['{'.\PHP_INT_MAX.'0}', [\PHP_INT_MAX.'0' => 'x'], 'x'],
+            'multiple names' => ['{?0,1}', [0 => 'a', 1 => 'b'], '?0=a&1=b'],
+        ];
+    }
+
+    /**
+     * @dataProvider allNumericVariableNameProvider
+     *
+     * @param array<array-key,mixed> $variables
+     */
+    public function testExpandsAllNumericVariableNames(string $template, array $variables, string $expansion): void
+    {
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
+    }
+
     public function testReportsEngineFailuresOnLongVariableNamesAsRuntimeException(): void
     {
         // Spec section 2.3 places no length limit on variable names, so a
