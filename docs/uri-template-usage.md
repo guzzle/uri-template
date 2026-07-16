@@ -165,8 +165,9 @@ UriTemplate::expand('/search{?filter*}', [
 
 Empty nested arrays are omitted from exploded query expansions. `null` members
 inside lists and maps are treated as undefined members and omitted, like
-top-level `null`. A list or map whose members are all `null` is treated as
-undefined, as described in the [specification conformance
+top-level `null`. A map whose members are all `null` is treated as undefined,
+while a non-empty list whose members are all `null` is a defined variable with
+no defined members, as described in the [specification conformance
 notes](#specification-conformance-notes).
 
 Variable values are encoded during expansion according to the expression type.
@@ -216,14 +217,15 @@ Variable values must be valid UTF-8, per RFC 6570 section 1.6. Invalid byte
 sequences throw `InvalidArgumentException`, as described in the [input
 contract](input-contract.md#values).
 
-Defined lists and maps are never empty values in named non-exploded
-expansions. RFC 6570 section 2.3 treats a list as undefined only when it
-contains zero members, and the appendix A algorithm tests the value for
-emptiness before its members are joined, so `{;l}` expanded with
-`['l' => ['']]` produces `;l=` rather than `;l`. Several other implementations
-test the comma-joined member string instead and omit the `=`, so path-style
-expansions of composite values whose members all expand empty can differ
-between libraries.
+A defined composite value is empty in named non-exploded expansions only when
+it contains no defined members. RFC 6570 section 2.3 treats a list as undefined
+only when it contains zero members, and the appendix A algorithm tests the
+value for emptiness before its members are joined, so `{;l}` expanded with
+`['l' => ['']]` produces `;l=` rather than `;l`, while `{;l}` expanded with
+`['l' => [null]]` produces `;l`. Several other implementations test the
+comma-joined member string instead and omit the `=`, so path-style expansions
+of composite values whose members all expand empty can differ between
+libraries.
 
 Exploded map members with empty-string values render as the bare name under the
 simple, reserved (`+`), fragment (`#`), label (`.`), and path segment (`/`)
@@ -239,15 +241,20 @@ applies the same rule through its ifemp string, so `{;x*}` with an empty-string
 member produces a bare name, while the form-style `{?x*}` and `{&x*}` keep
 `name=`.
 
-A list or map whose members are all `null` is treated as a wholly undefined
-variable, so it is omitted together with the operator's first character unless
-another variable in the expression is defined. RFC 6570 section 2.3 states
-this rule only for associative arrays, which are "considered undefined if the
-array contains zero members or if all member names in the array are associated
-with undefined values"; a list is called undefined only "if the list contains
-zero members". This library maps `null` members to undefined members, and
-skipping every undefined member leaves a list with zero members, so the same
-rule applies to lists.
+A map whose members are all `null` is treated as a wholly undefined variable,
+so it is omitted together with the operator's first character unless another
+variable in the expression is defined. RFC 6570 section 2.3 considers an
+associative array undefined "if the array contains zero members or if all
+member names in the array are associated with undefined values". A list whose
+members are all `null` is instead a defined variable with no defined members:
+RFC 6570 calls a list undefined only when it contains zero members and reserves
+the all-members-undefined rule for associative arrays. Such a list expands to
+an empty member list, so the operator first string is still emitted, named
+forms render the name with the operator's empty-value form, and prefix
+modifiers are rejected as for any other list. This is a revised conformance
+decision where the RFC is ambiguous; there is no ecosystem consensus for these
+inputs, and some implementations, such as std-uritemplate, reject them
+outright.
 
 No Unicode normalization is applied to templates or variable values. RFC 6570
 section 1.6 states that a value provided by a user "SHOULD be normalized as

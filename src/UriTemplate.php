@@ -182,17 +182,19 @@ final class UriTemplate
 
             $actuallyUseQuery = $useQuery;
             $expanded = '';
+            $kvp = [];
 
             if (\is_array($variable)) {
                 $isAssoc = self::isAssoc($variable);
-                $kvp = [];
                 /** @var mixed $var */
                 foreach ($variable as $key => $var) {
                     if ($var === null) {
                         // Spec section 3.2.1: a list expands "the defined
                         // member string values", and spec section 2.4.2:
                         // "only the defined pairs are present in the
-                        // expansion", so undefined members are skipped.
+                        // expansion", so undefined members are skipped. A
+                        // list whose members are all skipped stays defined
+                        // and expands to an empty member list.
                         continue;
                     }
 
@@ -247,13 +249,13 @@ final class UriTemplate
                     $kvp[] = (string) $var;
                 }
 
-                if ($kvp === []) {
-                    // A composite with no defined members is treated as an
-                    // undefined variable. Spec section 2.3 states this for
-                    // associative arrays only; extending it to lists whose
-                    // members are all null is a documented conformance
-                    // decision, since the spec calls a list undefined only
-                    // when it contains zero members.
+                if ($kvp === [] && $isAssoc) {
+                    // Spec section 2.3: a map whose member names are all
+                    // associated with undefined values is undefined. Nested
+                    // query maps whose members are all empty or all-null
+                    // nested arrays reach this point because those members
+                    // are arrays rather than null, so they are skipped here
+                    // instead of in isUndefinedVariable().
                     continue;
                 } elseif ($value['modifier'] === '*') {
                     $expanded = \implode($joiner, $kvp);
@@ -276,12 +278,20 @@ final class UriTemplate
 
             if ($actuallyUseQuery) {
                 if (\is_array($variable)) {
-                    // Spec sections 2.3 and 3.2.7 and appendix A: emptiness
-                    // is tested on the variable's value before expansion, and
-                    // a defined list or map is never an empty value, so "="
-                    // is appended even when every member expands to the empty
-                    // string.
-                    $expanded = \sprintf('%s=%s', $value['value'], $expanded);
+                    if ($kvp === []) {
+                        // Spec section 3.2.7: "=" is appended only for a
+                        // non-empty value, and a composite value is empty
+                        // only when it contains no defined members, so the
+                        // operator's ifemp string is used instead.
+                        $expanded = $value['value'].$ifemp;
+                    } else {
+                        // Spec sections 2.3 and 3.2.7 and appendix A:
+                        // emptiness is tested on the variable's value before
+                        // expansion, and a composite with a defined member
+                        // is never an empty value, so "=" is appended even
+                        // when every member expands to the empty string.
+                        $expanded = \sprintf('%s=%s', $value['value'], $expanded);
+                    }
                 } else {
                     $expanded = self::formatPair($value['value'], $expanded, $ifemp);
                 }
@@ -486,12 +496,13 @@ final class UriTemplate
     /**
      * Determines if a referenced variable is undefined.
      *
-     * Spec section 2.3: a list is undefined when it contains zero members,
-     * and a map is undefined when it contains zero members or when all
-     * member names are associated with undefined values. Lists whose
-     * members are all null are treated the same way, like an empty list.
-     * Spec section 3.2.1: undefined variables are ignored by the expansion
-     * process, so they are skipped before varspec shape validation.
+     * Spec section 2.3: a list is undefined only when it contains zero
+     * members, while a map is undefined when it contains zero members or
+     * when all member names are associated with undefined values. A
+     * non-empty list whose members are all null is therefore a defined
+     * variable with no defined members. Spec section 3.2.1: undefined
+     * variables are ignored by the expansion process, so they are skipped
+     * before varspec shape validation.
      *
      * @param array<string, mixed> $variables
      */
@@ -502,6 +513,14 @@ final class UriTemplate
         }
 
         if (!\is_array($variables[$name])) {
+            return false;
+        }
+
+        if ($variables[$name] === []) {
+            return true;
+        }
+
+        if (!self::isAssoc($variables[$name])) {
             return false;
         }
 
