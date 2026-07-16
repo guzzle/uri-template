@@ -832,7 +832,7 @@ final class UriTemplate
     }
 
     /**
-     * Escape unsafe diagnostic text before embedding it in an exception message.
+     * Escape unsafe diagnostic text before embedding it in exception messages.
      *
      * ASCII control bytes are always escaped as \xHH. Text that is not valid
      * UTF-8 additionally has all bytes outside printable ASCII escaped.

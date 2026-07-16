@@ -8,19 +8,19 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 
 ### Changed
 
-- Invalid URI template syntax now throws `InvalidArgumentException` instead of being partially expanded
-- Literal template text is now validated, and valid non-ASCII literals are pct-encoded during expansion
+- Invalid URI template syntax now throws `InvalidArgumentException` instead of expanding partially
+- Literal template text is now validated and valid non-ASCII literals are pct-encoded
 - URI template variable names and modifiers are now validated according to RFC 6570
 - Prefix modifiers are now rejected for list and map values
 - Referenced variable values are now validated before expansion
-- Dense zero-indexed arrays are expanded as lists, and sparse or mixed-key arrays are expanded as maps
+- Dense zero-indexed arrays are expanded as lists and sparse or mixed-key arrays as maps
 - `UriTemplate` is now non-instantiable; use `UriTemplate::expand()` statically
 - Nested null values in lists and maps are now treated as undefined members and omitted
-- Variable values must now be valid UTF-8 and invalid byte sequences throw `InvalidArgumentException`
+- Variable values must now be valid UTF-8; invalid byte sequences throw `InvalidArgumentException`
 - Booleans now expand as `1` and `0` at every nesting level
 - Non-finite floats now throw `InvalidArgumentException` instead of expanding as `INF` or `NAN`
 - Non-empty lists whose members are all null are now treated as defined variables
-- Variable specifier whitespace padding is now detected with the real whitespace set, including form feed
+- Variable specifier whitespace padding is now detected with the real whitespace set
 - `UriTemplate` now rejects native PHP serialization and unserialization
 - Referenced variable values are now detached and formed before expansion begins
 - Template syntax is now validated for every expression before variable values are formed
@@ -31,24 +31,24 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 
 ### Fixed
 
-- Fixed invalid template expressions being accepted as parameter names in query and path-style expansions
+- Fixed invalid template expressions being accepted as query and path-style parameter names
 - Fixed prefix modifiers counting bytes instead of Unicode code points and pct-encoded triplets
-- Fixed unsupported variable shapes producing PHP warnings, conversion errors, or lossy `Array` output
+- Fixed unsupported variable shapes producing warnings, conversion errors, or `Array` output
 - Fixed path-style parameter explode rendering empty members as `name=` instead of bare `name`
 - Fixed map keys not using the operator's allow set under reserved and fragment expansion
 - Fixed map explode rendering empty members as `name=` instead of bare `name` for unnamed operators
 - Fixed the documented variables array type rejecting integer keys for numeric variable names
 - Fixed all-null maps throwing with prefix modifiers instead of being skipped as undefined
 - Fixed prefix modifiers splitting Unicode code points encoded as multiple pct-encoded triplets
-- Fixed path-style expansion of composites rendering bare `name` instead of `name=` for empty joined members
-- Fixed nested query array members set to `null` being rejected for their keys instead of being omitted
+- Fixed path-style composites rendering bare `name` instead of `name=` for empty joined members
+- Fixed null nested query array members being rejected for their keys instead of being omitted
 - Fixed float values expanding with the locale decimal separator on PHP versions before 8.0
 - Fixed PCRE engine failures on very long variable names being reported as invalid template syntax
 - Fixed invalid UTF-8 errors for list and map members not reporting the member path
 - Fixed exception messages embedding raw invalid UTF-8 bytes from map keys
 - Fixed exception messages embedding raw invalid UTF-8 bytes from expression text
 - Fixed exception messages embedding raw ASCII control bytes from expression text and map keys
-- Fixed invalid UTF-8 in literal text reporting the offset of the literal segment instead of the first invalid byte
+- Fixed invalid UTF-8 in literal text reported at the segment offset, not the first invalid byte
 - Fixed PCRE engine failures during literal text validation being reported as invalid UTF-8
 - Fixed PCRE engine failures during variable UTF-8 validation not being reported as runtime errors
 - Fixed PCRE engine failures during invalid UTF-8 offset recovery being reported as invalid UTF-8
