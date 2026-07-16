@@ -220,17 +220,19 @@ test the comma-joined member string instead and omit the `=`, so path-style
 expansions of composite values whose members all expand empty can differ
 between libraries.
 
-Exploded map members with empty-string values render as `name=` under the
+Exploded map members with empty-string values render as the bare name under the
 simple, reserved (`+`), fragment (`#`), label (`.`), and path segment (`/`)
-operators. RFC 6570 contradicts itself for these operators: the normative
-prose in section 3.2.1 appends each exploded pair as "name=value" or, "if the
-value is the empty string and the expression type does not indicate form-style
-parameters", simply "name", while the non-normative appendix A algorithm
-appends every pair with a defined value as "name=value", and no erratum
-resolves the conflict. This library follows the appendix A rendering, matching
-other implementations. The named operators agree under both readings, with `;`
-following the section 3.2.1 prose via its ifemp rule, so `{;x*}` with an
-empty-string member produces a bare name.
+operators. RFC 6570 contradicts itself for these operators: the normative prose
+in section 3.2.1 appends each exploded pair as "name=value" or, "if the value is
+the empty string and the expression type does not indicate form-style
+parameters", simply "name", while the non-normative appendix A algorithm appends
+every pair with a defined value as "name=value", and no erratum resolves the
+conflict. This library follows the normative section 3.2.1 rendering, so other
+implementations that follow appendix A may render `name=` where this library
+renders the bare name. The named operators agree under both readings: `;`
+applies the same rule through its ifemp string, so `{;x*}` with an empty-string
+member produces a bare name, while the form-style `{?x*}` and `{&x*}` keep
+`name=`.
 
 A list or map whose members are all `null` is treated as a wholly undefined
 variable, so it is omitted together with the operator's first character unless
