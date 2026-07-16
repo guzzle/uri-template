@@ -66,14 +66,13 @@ final class UriTemplate
             return $template;
         }
 
-        $expressions = self::parseExpressions($references);
-        $values = self::formValues($references, $expressions, $variables);
+        $values = self::formValues($references, $variables);
 
         /** @var string|null */
         $result = \preg_replace_callback(
             '/\{([^\}]+)\}/',
-            static function (array $matches) use ($expressions, $values): string {
-                return self::expandMatch($matches, $expressions, $values);
+            static function (array $matches) use ($values): string {
+                return self::expandMatch($matches, $values);
             },
             $template
         );
@@ -86,88 +85,232 @@ final class UriTemplate
     }
 
     /**
-     * Parse and validate every expression of the template, in template order.
-     *
-     * Expression text such as "0" is a canonical decimal integer string,
-     * which PHP stores under an integer array key.
-     *
-     * @param list<string> $references The expression text of each expression, in template order
-     *
-     * @return array<array-key, array{operator:string, values:array<array{value:string, modifier:(''|'*'|':'), position?:int}>}>
-     */
-    private static function parseExpressions(array $references): array
-    {
-        $expressions = [];
-
-        foreach ($references as $expression) {
-            if (!isset($expressions[$expression])) {
-                $expressions[$expression] = self::parseExpression($expression);
-            }
-        }
-
-        return $expressions;
-    }
-
-    /**
      * Detach and form every referenced variable value before expansion.
      *
      * Spec section 3: each variable's value is formed prior to template
-     * expansion. Definedness is bound and raw values are detached, in
-     * template order, before any __toString() method runs, so an object
-     * converted while values are formed cannot change another referenced
-     * variable through a PHP reference. Stringable objects are then
-     * converted to strings and scalars to their expansion strings, once
-     * per value position, in template order, and string values and map
-     * keys are validated as UTF-8 in the same pass, so a repeated variable
-     * keeps a static value throughout the expansion and value errors
-     * surface in member order. Undefined variables are stored as null.
+     * expansion. Every expression is parsed and validated first, then
+     * definedness is bound and raw values are read, in template order,
+     * before any __toString() method runs, so an object converted while
+     * values are formed cannot change another referenced variable through
+     * a PHP reference. Stringable objects are converted to strings and
+     * scalars to their expansion strings, once per value position, in
+     * template order, and string values and map keys are validated as
+     * UTF-8 in the same pass, so a repeated variable keeps a static value
+     * throughout the expansion and value errors surface in member order.
+     * Undefined variables are stored as null.
      *
-     * @param list<string>                                                                                                      $references  The expression text of each expression, in template order
-     * @param array<array-key, array{operator:string, values:array<array{value:string, modifier:(''|'*'|':'), position?:int}>}> $expressions
-     * @param array<array-key, mixed>                                                                                           $variables
+     * Values containing no references, floats, or stringable objects, and
+     * values whose shape is certain to be rejected, are shared instead of
+     * being rebuilt: copy-on-write semantics guarantee shared values
+     * cannot change, and sharing avoids materializing structures whose
+     * logical size exceeds their physical size, such as arrays repeating
+     * one shared subtree. Parsed expressions are not retained; expansion
+     * parses each occurrence again, so templates with many distinct
+     * expressions do not allocate storage proportional to their count.
+     *
+     * @param list<string>            $references The distinct expression text, in first-occurrence order
+     * @param array<array-key, mixed> $variables
      *
      * @return array<array-key, mixed>
      */
-    private static function formValues(array $references, array $expressions, array $variables): array
+    private static function formValues(array $references, array $variables): array
     {
-        /** @var array<array-key, mixed> $detached */
-        $detached = [];
-        /** @var list<array{string, array{value:string, modifier:(''|'*'|':'), position?:int}, string, string}> $order */
+        /** @var array<array-key, mixed> $values */
+        $values = [];
+        /** @var list<array{string, array{value:string, modifier:(''|'*'|':'), position?:int}, string, string, bool}> $order */
         $order = [];
 
         foreach ($references as $expression) {
-            foreach ($expressions[$expression]['values'] as $varspec) {
+            $parsed = self::parseExpression($expression);
+
+            foreach ($parsed['values'] as $varspec) {
                 $name = $varspec['value'];
 
-                if (\array_key_exists($name, $detached)) {
+                if (\array_key_exists($name, $values)) {
                     continue;
                 }
 
                 if (self::isUndefinedVariable($variables, $name)) {
-                    $detached[$name] = null;
+                    $values[$name] = null;
                     continue;
                 }
 
-                $operator = $expressions[$expression]['operator'];
                 /** @var mixed $raw */
                 $raw = $variables[$name];
-                $membersMayNest = \is_array($raw)
-                    && $varspec['modifier'] === '*'
-                    && ($operator === '?' || $operator === '&')
-                    && self::isAssoc($raw);
+                $form = self::valueNeedsForming($raw, 0)
+                    && !self::shapeGuaranteesRejection($varspec, $raw, $parsed['operator']);
 
-                $detached[$name] = self::detachValue($raw, $membersMayNest, 0);
-                $order[] = [$name, $varspec, $expression, $operator];
+                if ($form) {
+                    $membersMayNest = \is_array($raw)
+                        && $varspec['modifier'] === '*'
+                        && ($parsed['operator'] === '?' || $parsed['operator'] === '&')
+                        && self::isAssoc($raw);
+                    /** @var mixed $raw */
+                    $raw = self::detachValue($raw, $membersMayNest, 0);
+                }
+
+                $values[$name] = $raw;
+                $order[] = [$name, $varspec, $expression, $parsed['operator'], $form];
             }
         }
 
-        $values = $detached;
-
-        foreach ($order as [$name, $varspec, $expression, $operator]) {
-            $values[$name] = self::normalizeVariableShape($varspec, $detached[$name], $expression, $operator);
+        foreach ($order as [$name, $varspec, $expression, $operator, $form]) {
+            if ($form) {
+                $values[$name] = self::normalizeVariableShape($varspec, $values[$name], $expression, $operator);
+            } else {
+                self::assertVariableShape($varspec, $values[$name], $expression, $operator);
+            }
         }
 
         return $values;
+    }
+
+    /**
+     * Determine whether a value must be detached and rebuilt to be formed.
+     *
+     * Only PHP references can change an array's contents after it has been
+     * read, and only floats and stringable objects need eager conversion,
+     * so a value containing none of the three is shared as it is. Levels
+     * beyond the nesting limit are not scanned; shapes that deep are
+     * always rejected by validation before their contents are read.
+     *
+     * @param mixed $value
+     */
+    private static function valueNeedsForming($value, int $depth): bool
+    {
+        if (\is_float($value)) {
+            return true;
+        }
+
+        if (\is_object($value)) {
+            return \method_exists($value, '__toString');
+        }
+
+        if (!\is_array($value) || $depth > self::MAX_VARIABLE_DEPTH + 1) {
+            return false;
+        }
+
+        /** @var mixed $member */
+        foreach ($value as $key => $member) {
+            if (\ReflectionReference::fromArrayElement($value, $key) !== null
+                || self::valueNeedsForming($member, $depth + 1)
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine whether shape validation is certain to reject a value.
+     *
+     * Mirrors the shape rules without messages, encoding checks, or user
+     * code, and stops at the first guaranteed rejection, so cyclic or
+     * copy-on-write shared structures that can never expand are rejected
+     * by walking them instead of being rebuilt first.
+     *
+     * @param array{value:string, modifier:(''|'*'|':'), position?:int} $varspec
+     * @param mixed                                                     $variable
+     */
+    private static function shapeGuaranteesRejection(array $varspec, $variable, string $operator): bool
+    {
+        if (self::isScalarLike($variable)) {
+            return \is_float($variable) && !\is_finite($variable);
+        }
+
+        if (!\is_array($variable)) {
+            return true;
+        }
+
+        if ($varspec['modifier'] === ':') {
+            return true;
+        }
+
+        if (!self::isAssoc($variable)) {
+            /** @var mixed $member */
+            foreach ($variable as $member) {
+                if ($member !== null && !self::isScalarLike($member)) {
+                    return true;
+                }
+
+                if (\is_float($member) && !\is_finite($member)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        $allowNestedArrays = $varspec['modifier'] === '*' && ($operator === '?' || $operator === '&');
+
+        return self::mapShapeGuaranteesRejection($variable, $allowNestedArrays, 0);
+    }
+
+    /**
+     * @param array<array-key, mixed> $value
+     */
+    private static function mapShapeGuaranteesRejection(array $value, bool $allowNestedArrays, int $depth): bool
+    {
+        if ($depth > self::MAX_VARIABLE_DEPTH) {
+            return true;
+        }
+
+        /** @var mixed $member */
+        foreach ($value as $member) {
+            if ($member === null || self::isScalarLike($member)) {
+                if (\is_float($member) && !\is_finite($member)) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if (\is_array($member) && $allowNestedArrays) {
+                if (self::nestedQueryShapeGuaranteesRejection($member, $depth + 1)) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array<array-key, mixed> $value
+     */
+    private static function nestedQueryShapeGuaranteesRejection(array $value, int $depth): bool
+    {
+        if ($depth > self::MAX_VARIABLE_DEPTH) {
+            return true;
+        }
+
+        /** @var mixed $member */
+        foreach ($value as $member) {
+            if ($member === null || \is_scalar($member)) {
+                if (\is_float($member) && !\is_finite($member)) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if (\is_array($member)) {
+                if (self::nestedQueryShapeGuaranteesRejection($member, $depth + 1)) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -281,16 +424,15 @@ final class UriTemplate
     /**
      * Process an expansion
      *
-     * @param array{0: string, 1: string}                                                                                       $matches     Matches met in the preg_replace_callback
-     * @param array<array-key, array{operator:string, values:array<array{value:string, modifier:(''|'*'|':'), position?:int}>}> $expressions Parsed expressions of the template
-     * @param array<array-key, mixed>                                                                                           $values      Variable values formed before the expansion began
+     * @param array{0: string, 1: string} $matches Matches met in the preg_replace_callback
+     * @param array<array-key, mixed>     $values  Variable values formed before the expansion began
      *
      * @return string Returns the replacement string
      */
-    private static function expandMatch(array $matches, array $expressions, array $values): string
+    private static function expandMatch(array $matches, array $values): string
     {
         $replacements = [];
-        $parsed = $expressions[$matches[1]];
+        $parsed = self::parseExpression($matches[1]);
         $prefix = self::OPERATOR_HASH[$parsed['operator']]['prefix'];
         $joiner = self::OPERATOR_HASH[$parsed['operator']]['joiner'];
         $useQuery = self::OPERATOR_HASH[$parsed['operator']]['query'];
@@ -310,7 +452,7 @@ final class UriTemplate
             // rule, run on every occurrence against the formed value, so an
             // occurrence with an inapplicable modifier throws no matter
             // where it appears in the template.
-            self::normalizeVariableShape($value, $variable, $matches[1], $parsed['operator']);
+            self::assertVariableShape($value, $variable, $matches[1], $parsed['operator']);
 
             $actuallyUseQuery = $useQuery;
             $expanded = '';
@@ -677,6 +819,192 @@ final class UriTemplate
     }
 
     /**
+     * Validate a variable value against a varspec without rebuilding it.
+     *
+     * Values that were shared instead of formed contain no references,
+     * floats, or stringable objects, so validating them in place is
+     * sufficient, and later occurrences of every variable re-run the
+     * varspec-specific checks, such as the prefix-on-composite rule,
+     * against the already formed value.
+     *
+     * @param array{value:string, modifier:(''|'*'|':'), position?:int} $varspec
+     * @param mixed                                                     $variable
+     */
+    private static function assertVariableShape(array $varspec, $variable, string $expression, string $operator): void
+    {
+        if (self::isScalarLike($variable)) {
+            if (\is_float($variable) && !\is_finite($variable)) {
+                throw self::invalidVariable($expression, $varspec['value'], 'non-finite floats are not supported');
+            }
+
+            if (\is_string($variable)) {
+                self::assertValidVariableUtf8($variable, $expression, $varspec['value']);
+            }
+
+            return;
+        }
+
+        if (!\is_array($variable)) {
+            throw self::invalidVariable(
+                $expression,
+                $varspec['value'],
+                \sprintf(
+                    'expected scalar, stringable object, list, or associative array; got %s',
+                    \get_debug_type($variable)
+                )
+            );
+        }
+
+        if ($varspec['modifier'] === ':') {
+            throw self::invalidVariable(
+                $expression,
+                $varspec['value'],
+                'prefix modifier is not applicable to composite values'
+            );
+        }
+
+        if (!self::isAssoc($variable)) {
+            self::assertListShape($varspec['value'], $variable, $expression);
+
+            return;
+        }
+
+        $allowNestedArrays = $varspec['modifier'] === '*' && ($operator === '?' || $operator === '&');
+
+        self::assertMapShape($varspec['value'], $variable, $expression, $allowNestedArrays, 0);
+    }
+
+    /**
+     * @param array<array-key, mixed> $value
+     */
+    private static function assertListShape(string $path, array $value, string $expression): void
+    {
+        /** @var mixed $member */
+        foreach ($value as $index => $member) {
+            if ($member === null) {
+                continue;
+            }
+
+            $memberPath = \sprintf('%s[%d]', $path, $index);
+
+            if (self::isScalarLike($member)) {
+                if (\is_float($member) && !\is_finite($member)) {
+                    throw self::invalidVariable($expression, $memberPath, 'non-finite floats are not supported');
+                }
+
+                if (\is_string($member)) {
+                    self::assertValidVariableUtf8($member, $expression, $memberPath);
+                }
+
+                continue;
+            }
+
+            throw self::invalidVariable(
+                $expression,
+                $memberPath,
+                \sprintf('expected scalar or stringable object; got %s', \get_debug_type($member))
+            );
+        }
+    }
+
+    /**
+     * @param array<array-key, mixed> $value
+     */
+    private static function assertMapShape(
+        string $path,
+        array $value,
+        string $expression,
+        bool $allowNestedArrays,
+        int $depth
+    ): void {
+        if ($depth > self::MAX_VARIABLE_DEPTH) {
+            throw self::invalidVariable($expression, $path, 'maximum variable nesting depth exceeded');
+        }
+
+        /** @var mixed $member */
+        foreach ($value as $key => $member) {
+            if ($member === null) {
+                continue;
+            }
+
+            $memberPath = \sprintf('%s[%s]', $path, (string) $key);
+
+            if (\is_string($key)) {
+                self::assertValidVariableUtf8($key, $expression, $memberPath);
+            }
+
+            if (self::isScalarLike($member)) {
+                if (\is_float($member) && !\is_finite($member)) {
+                    throw self::invalidVariable($expression, $memberPath, 'non-finite floats are not supported');
+                }
+
+                if (\is_string($member)) {
+                    self::assertValidVariableUtf8($member, $expression, $memberPath);
+                }
+
+                continue;
+            }
+
+            if (\is_array($member) && $allowNestedArrays) {
+                self::assertNestedQueryShape($memberPath, $member, $expression, $depth + 1);
+                continue;
+            }
+
+            throw self::invalidVariable(
+                $expression,
+                $memberPath,
+                \sprintf('expected scalar%s; got %s', $allowNestedArrays ? ', stringable object, or nested array' : ' or stringable object', \get_debug_type($member))
+            );
+        }
+    }
+
+    /**
+     * @param array<array-key, mixed> $value
+     */
+    private static function assertNestedQueryShape(string $path, array $value, string $expression, int $depth): void
+    {
+        if ($depth > self::MAX_VARIABLE_DEPTH) {
+            throw self::invalidVariable($expression, $path, 'maximum variable nesting depth exceeded');
+        }
+
+        /** @var mixed $member */
+        foreach ($value as $key => $member) {
+            if ($member === null) {
+                continue;
+            }
+
+            $memberPath = \sprintf('%s[%s]', $path, (string) $key);
+
+            if (\is_string($key)) {
+                self::assertValidVariableUtf8($key, $expression, $memberPath);
+            }
+
+            if (\is_scalar($member)) {
+                if (\is_string($member)) {
+                    self::assertValidVariableUtf8($member, $expression, $memberPath);
+                }
+
+                if (\is_float($member) && !\is_finite($member)) {
+                    throw self::invalidVariable($expression, $memberPath, 'non-finite floats are not supported');
+                }
+
+                continue;
+            }
+
+            if (\is_array($member)) {
+                self::assertNestedQueryShape($memberPath, $member, $expression, $depth + 1);
+                continue;
+            }
+
+            throw self::invalidVariable(
+                $expression,
+                $memberPath,
+                \sprintf('expected scalar or nested array; got %s', \get_debug_type($member))
+            );
+        }
+    }
+
+    /**
      * Validate a referenced variable and return its snapshot.
      *
      * Stringable objects, including stringable members of lists and maps,
@@ -950,15 +1278,26 @@ final class UriTemplate
     /**
      * Determines if an array should be expanded as a map.
      *
+     * An array is a list only when its keys are exactly 0 through n-1 in
+     * ascending insertion order. The keys are compared one by one so the
+     * check stops at the first mismatch and never materializes key arrays
+     * proportional to the member count.
+     *
      * @param array<array-key, mixed> $array
      */
     private static function isAssoc(array $array): bool
     {
-        if ($array === []) {
-            return false;
+        $expected = 0;
+
+        foreach ($array as $key => $member) {
+            if ($key !== $expected) {
+                return true;
+            }
+
+            ++$expected;
         }
 
-        return \array_keys($array) !== \range(0, \count($array) - 1);
+        return false;
     }
 
     private static function prefixValue(string $value, int $length, string $expression, string $name): string

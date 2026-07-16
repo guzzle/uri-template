@@ -1071,6 +1071,35 @@ final class UriTemplateTest extends TestCase
         self::assertSame(\str_repeat('y', 200000), UriTemplate::expand($template, ['x' => 'y']));
     }
 
+    public function testExpandsManyDistinctExpressionsWithoutRetainingParses(): void
+    {
+        $template = '';
+        for ($i = 0; $i < 20000; ++$i) {
+            $template .= '{v'.$i.'}';
+        }
+
+        self::assertSame('', UriTemplate::expand($template, []));
+    }
+
+    public function testSharesNestedQueryStructuresThatCannotChange(): void
+    {
+        $shared = ['v', 'w'];
+
+        self::assertSame(
+            '?a%5B0%5D%5B0%5D=v&a%5B0%5D%5B1%5D=w&a%5B1%5D%5B0%5D=v&a%5B1%5D%5B1%5D=w',
+            UriTemplate::expand('{?x*}', ['x' => ['a' => [$shared, $shared]]])
+        );
+    }
+
+    public function testRejectsReferenceCyclesWithoutMaterializingThem(): void
+    {
+        $cycle = [];
+        $cycle[0] = &$cycle;
+        $cycle[1] = &$cycle;
+
+        $this->assertInvalidTemplate('{?x*}', ['x' => ['k' => $cycle]]);
+    }
+
     /**
      * @return array<string,array{0:mixed}>
      */
