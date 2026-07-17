@@ -501,6 +501,8 @@ final class UriTemplateTest extends TestCase
         return [
             'simple first unicode character' => ['{var:1}', ['var' => "\xC3\xA9clair"], '%C3%A9'],
             'simple unicode and ascii characters' => ['{var:2}', ['var' => "\xC3\xA9clair"], '%C3%A9c'],
+            'simple three-byte unicode character' => ['{var:1}', ['var' => "\xE2\x82\xACuro"], '%E2%82%AC'],
+            'simple four-byte unicode character' => ['{var:1}', ['var' => "\xF0\x9F\x92\xA9rest"], '%F0%9F%92%A9'],
             'reserved unicode and slash characters' => ['{+var:2}', ['var' => "\xC3\xA9/clair"], '%C3%A9/'],
             'query unicode character' => ['{?var:1}', ['var' => "\xC3\xA9clair"], '?var=%C3%A9'],
             'pct triplet counts as one character' => ['{var:1}', ['var' => '%2Fabc'], '%252F'],
@@ -558,6 +560,11 @@ final class UriTemplateTest extends TestCase
     public function testRejectsInvalidUtf8PrefixValues(): void
     {
         $this->assertInvalidTemplate('{var:1}', ['var' => "\xC3"]);
+    }
+
+    public function testRejectsInvalidUtf8AfterSelectedPrefix(): void
+    {
+        $this->assertInvalidTemplate('{var:1}', ['var' => "a\xFF"]);
     }
 
     /**

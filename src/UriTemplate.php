@@ -579,7 +579,7 @@ final class UriTemplate
                 $expanded = self::stringifyValue($variable);
 
                 if ($value['modifier'] === ':' && isset($value['position'])) {
-                    $expanded = self::prefixValue($expanded, $value['position'], $matches[1], $value['value']);
+                    $expanded = self::prefixValue($expanded, $value['position']);
                 }
 
                 $expanded = self::encodeValue($expanded, $allowReserved, $matches[1], $value['value']);
@@ -1345,85 +1345,84 @@ final class UriTemplate
         return false;
     }
 
-    private static function prefixValue(string $value, int $length, string $expression, string $name): string
+    /**
+     * Select a prefix by Unicode code points and pct-encoded characters.
+     */
+    private static function prefixValue(string $value, int $length): string
     {
-        if ($value === '') {
-            return '';
+        $valueLength = \strlen($value);
+        if ($valueLength <= $length) {
+            return $value;
         }
 
-        $matches = [];
-        $result = \preg_match_all('/%[0-9A-Fa-f]{2}|./us', $value, $matches);
+        $offset = 0;
 
-        if ($result === false || \preg_last_error() !== \PREG_NO_ERROR) {
-            if (\preg_last_error() !== \PREG_BAD_UTF8_ERROR) {
-                throw new \RuntimeException(\sprintf('Unable to process template: %s', \preg_last_error_msg()));
-            }
-
-            throw self::invalidVariable($expression, $name, 'prefix modifier requires valid UTF-8');
+        for ($taken = 0; $taken < $length && $offset < $valueLength; ++$taken) {
+            $offset += self::prefixCharacterByteLength($value, $offset, $valueLength);
         }
 
-        $tokens = $matches[0];
-        $count = \count($tokens);
-        $prefix = '';
-        $index = 0;
-
-        // Spec sections 2.4.1 and 3.2.1: prefix lengths count each Unicode
-        // code point as one character so that the value is never split in
-        // mid-character, so consecutive pct-encoded triplets that encode a
-        // single UTF-8 code point are kept together as one character.
-        for ($taken = 0; $taken < $length && $index < $count; ++$taken) {
-            $width = 1;
-
-            if (\strlen($tokens[$index]) === 3 && \str_starts_with($tokens[$index], '%')) {
-                $width = self::pctEncodedCodePointTripletCount($tokens, $index);
-            }
-
-            while ($width-- > 0) {
-                $prefix .= $tokens[$index];
-                ++$index;
-            }
-        }
-
-        return $prefix;
+        return \substr($value, 0, $offset);
     }
 
-    /**
-     * Count the consecutive pct-encoded triplets starting at the index that
-     * together encode a single Unicode code point as UTF-8.
-     *
-     * Returns 1 when the triplet does not begin such a sequence, so triplets
-     * that do not participate in a multi-octet-encoded character keep
-     * counting as one character each.
-     *
-     * @param list<string> $tokens
-     */
-    private static function pctEncodedCodePointTripletCount(array $tokens, int $index): int
+    private static function prefixCharacterByteLength(string $value, int $offset, int $valueLength): int
     {
-        $lead = (int) \hexdec(\substr($tokens[$index], 1));
+        if ($value[$offset] === '%' && $offset + 2 < $valueLength && \strspn($value, '0123456789ABCDEFabcdef', $offset + 1, 2) === 2) {
+            $lead = (int) \hexdec(\substr($value, $offset + 1, 2));
+            $octets = self::utf8SequenceByteLength($lead);
 
-        if ($lead >= 0xC2 && $lead <= 0xDF) {
-            $octets = 2;
-        } elseif ($lead >= 0xE0 && $lead <= 0xEF) {
-            $octets = 3;
-        } elseif ($lead >= 0xF0 && $lead <= 0xF4) {
-            $octets = 4;
-        } else {
+            if ($octets === 1) {
+                return 3;
+            }
+
+            $candidate = \chr($lead);
+
+            for ($index = 1; $index < $octets; ++$index) {
+                $tripletOffset = $offset + 3 * $index;
+
+                if ($tripletOffset + 2 >= $valueLength || $value[$tripletOffset] !== '%' || \strspn($value, '0123456789ABCDEFabcdef', $tripletOffset + 1, 2) !== 2) {
+                    return 3;
+                }
+
+                $candidate .= \chr((int) \hexdec(\substr($value, $tripletOffset + 1, 2)));
+            }
+
+            return self::isSingleUtf8CodePoint($candidate) ? 3 * $octets : 3;
+        }
+
+        $octets = self::utf8SequenceByteLength(\ord($value[$offset]));
+        if ($octets === 1 || $offset + $octets > $valueLength) {
             return 1;
         }
 
-        $decoded = \chr($lead);
+        return self::isSingleUtf8CodePoint(\substr($value, $offset, $octets)) ? $octets : 1;
+    }
 
-        for ($offset = 1; $offset < $octets; ++$offset) {
-            $token = $tokens[$index + $offset] ?? '';
-
-            if (\strlen($token) !== 3 || !\str_starts_with($token, '%')) {
-                return 1;
-            }
-
-            $decoded .= \chr((int) \hexdec(\substr($token, 1)));
+    private static function utf8SequenceByteLength(int $lead): int
+    {
+        if ($lead >= 0xC2 && $lead <= 0xDF) {
+            return 2;
         }
 
-        return \preg_match('/\A.\z/us', $decoded) === 1 ? $octets : 1;
+        if ($lead >= 0xE0 && $lead <= 0xEF) {
+            return 3;
+        }
+
+        return $lead >= 0xF0 && $lead <= 0xF4 ? 4 : 1;
+    }
+
+    private static function isSingleUtf8CodePoint(string $candidate): bool
+    {
+        $result = \preg_match('/\A.\z/us', $candidate);
+
+        if ($result !== false) {
+            return $result === 1;
+        }
+
+        if (\preg_last_error() === \PREG_BAD_UTF8_ERROR) {
+            return false;
+        }
+
+        throw new \RuntimeException(\sprintf('Unable to process template: %s', \preg_last_error_msg()));
     }
 
     private static function encodeLiteralSegment(string $literal, int $baseOffset): string
