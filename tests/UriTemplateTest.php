@@ -637,9 +637,12 @@ final class UriTemplateTest extends TestCase
     public static function diagnosticControlByteProvider(): array
     {
         return [
-            'nul expression' => ["{bad\x00}", [], '"{bad\x00}"', "\x00"],
+            'nul expression' => ["{bad\x00}", [], '{bad\x00}', "\x00"],
             'esc map key' => ['{?x*}', ['x' => ["red\x1B[31m" => new \stdClass()]], 'variable "x[red\x1B[31m]"', "\x1B"],
             'del map key' => ['{?x*}', ['x' => ["gone\x7F" => new \stdClass()]], 'variable "x[gone\x7F]"', "\x7F"],
+            'u+0080 expression' => ["{bad\u{0080}}", [], '{bad\x80}', "\u{0080}"],
+            'u+009b map key' => ['{?x*}', ['x' => ["key\u{009B}" => new \stdClass()]], 'variable "x[key\x9B]"', "\u{009B}"],
+            'c1 before malformed byte' => ["{bad\u{009B}\xFF}", [], '{bad\xC2\x9B\xFF}', "\u{009B}"],
         ];
     }
 
