@@ -55,6 +55,12 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 
 - Dropped support for PHP 7.2 and 7.3
 
+## v1.0.10 - 2026-07-17
+
+### Fixed
+
+- Fixed prefix modifiers counting Unicode code points and pct-encoded characters instead of bytes
+
 ## v1.0.9 - 2026-07-08
 
 ### Changed
