@@ -4,6 +4,12 @@ All notable changes to `uri-template` will be documented in this file.
 
 Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) principles.
 
+## v1.0.10 - Unreleased
+
+### Fixed
+
+- Fixed prefix modifiers counting Unicode code points and pct-encoded characters instead of bytes
+
 ## v1.0.9 - 2026-07-08
 
 ### Changed

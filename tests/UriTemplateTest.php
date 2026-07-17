@@ -136,6 +136,31 @@ final class UriTemplateTest extends TestCase
         self::assertSame($expansion, UriTemplate::expand($template, $variables));
     }
 
+    public static function prefixProvider(): array
+    {
+        return [
+            'unicode code point' => ['{var:1}', ['var' => "\xC3\xA9clair"], '%C3%A9'],
+            'unicode code point and ASCII' => ['{var:2}', ['var' => "\xC3\xA9clair"], '%C3%A9c'],
+            'simple pct triplet' => ['{var:1}', ['var' => '%2Fabc'], '%252F'],
+            'reserved pct triplet' => ['{+var:1}', ['var' => '%2Fabc'], '%2F'],
+            'two-octet pct code point' => ['{+var:1}', ['var' => '%C3%A9clair'], '%C3%A9'],
+            'three-octet pct code point' => ['{+var:1}', ['var' => '%E2%82%ACuro'], '%E2%82%AC'],
+            'four-octet pct code point and ASCII' => ['{+var:2}', ['var' => '%F0%9F%92%A9rest'], '%F0%9F%92%A9r'],
+            'incomplete pct code point' => ['{+var:2}', ['var' => '%C3xyz'], '%C3x'],
+            'invalid UTF-8 byte fallback' => ['{var:1}', ['var' => "\xC3abc"], '%C3'],
+            'pct code point before malformed tail' => ['{+var:1}', ['var' => "%C3%A9clair\xFF"], '%C3%A9'],
+            'malformed byte before raw code point' => ['{var:2}', ['var' => "\xFF\xC3\xA9rest"], '%FF%C3%A9'],
+        ];
+    }
+
+    /**
+     * @dataProvider prefixProvider
+     */
+    public function testCountsPrefixCharacters(string $template, array $variables, string $expansion): void
+    {
+        self::assertSame($expansion, UriTemplate::expand($template, $variables));
+    }
+
     public static function nonFiniteFloatProvider(): array
     {
         return [
