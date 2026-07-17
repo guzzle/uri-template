@@ -773,11 +773,7 @@ final class UriTemplate
 
     private static function invalidExpression(string $expression, string $message): \InvalidArgumentException
     {
-        return new \InvalidArgumentException(\sprintf(
-            'Invalid URI template expression "{%s}": %s.',
-            self::escapeInvalidUtf8ForMessage($expression),
-            self::escapeInvalidUtf8ForMessage($message)
-        ));
+        return new \InvalidArgumentException(\sprintf('Invalid URI template expression {%s}: %s.', self::escapeDiagnosticValue($expression), self::escapeDiagnosticValue($message)));
     }
 
     /**
@@ -823,33 +819,48 @@ final class UriTemplate
 
     private static function invalidVariable(string $expression, string $path, string $message): \InvalidArgumentException
     {
-        return new \InvalidArgumentException(\sprintf(
-            'Invalid URI template variable "%s" in "{%s}": %s.',
-            self::escapeInvalidUtf8ForMessage($path),
-            self::escapeInvalidUtf8ForMessage($expression),
-            $message
-        ));
+        return new \InvalidArgumentException(\sprintf('Invalid URI template variable "%s" in {%s}: %s.', self::escapeDiagnosticValue($path), self::escapeDiagnosticValue($expression), $message));
     }
 
     /**
      * Escape unsafe diagnostic text before embedding it in exception messages.
      *
-     * ASCII control bytes are always escaped as \xHH. Text that is not valid
-     * UTF-8 additionally has all bytes outside printable ASCII escaped.
+     * C0, DEL, and C1 controls are rendered as \xHH. If UTF-8-aware diagnostic
+     * escaping fails, every byte outside printable ASCII is rendered in the
+     * same form. The result is diagnostic text, not a reversible encoding.
      */
-    private static function escapeInvalidUtf8ForMessage(string $value): string
+    private static function escapeDiagnosticValue(string $value): string
     {
-        $isValidUtf8 = \preg_match('//u', $value) === 1;
-        $sanitized = '';
+        $escaped = \preg_replace_callback(
+            '/[\x{0000}-\x{001F}\x{007F}-\x{009F}]/u',
+            static function (array $matches): string {
+                $character = $matches[0];
+                $codePoint = \strlen($character) === 1 ? \ord($character) : \ord($character[1]);
+
+                return \sprintf('\\x%02X', $codePoint);
+            },
+            $value
+        );
+
+        return $escaped ?? self::escapeDiagnosticBytes($value);
+    }
+
+    private static function escapeDiagnosticBytes(string $value): string
+    {
+        $escaped = '';
 
         for ($offset = 0, $length = \strlen($value); $offset < $length; ++$offset) {
-            $ord = \ord($value[$offset]);
-            $isSafeByte = $ord >= 0x20 && $ord !== 0x7F && ($isValidUtf8 || $ord <= 0x7E);
+            $byte = \ord($value[$offset]);
+            if ($byte >= 0x20 && $byte <= 0x7E) {
+                $escaped .= $value[$offset];
 
-            $sanitized .= $isSafeByte ? $value[$offset] : \sprintf('\x%02X', $ord);
+                continue;
+            }
+
+            $escaped .= \sprintf('\\x%02X', $byte);
         }
 
-        return $sanitized;
+        return $escaped;
     }
 
     /**

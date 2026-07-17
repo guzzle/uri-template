@@ -45,9 +45,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 - Fixed float values expanding with the locale decimal separator on PHP versions before 8.0
 - Fixed PCRE engine failures on very long variable names being reported as invalid template syntax
 - Fixed invalid UTF-8 errors for list and map members not reporting the member path
-- Fixed exception messages embedding raw invalid UTF-8 bytes from map keys
-- Fixed exception messages embedding raw invalid UTF-8 bytes from expression text
-- Fixed exception messages embedding raw ASCII control bytes from expression text and map keys
+- Fixed exception messages embedding raw controls or malformed UTF-8 from expressions and map keys
 - Fixed invalid UTF-8 in literal text reported at the segment offset, not the first invalid byte
 - Fixed PCRE engine failures during literal text validation being reported as invalid UTF-8
 - Fixed PCRE engine failures during variable UTF-8 validation not being reported as runtime errors
