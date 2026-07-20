@@ -21,8 +21,8 @@ composer require guzzlehttp/uri-template
 
 | Version | Status       | PHP Version  |
 |---------|--------------|--------------|
-| 2.x     | Experimental | >=7.4,<8.6   |
-| 1.x     | Latest       | >=7.2.5,<8.6 |
+| 2.0     | Latest       | >=7.4,<8.6   |
+| 1.0     | Maintenance  | >=7.2.5,<8.6 |
 
 ## Quick Start
 
