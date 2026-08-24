@@ -4,6 +4,12 @@ All notable changes to `uri-template` will be documented in this file.
 
 Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) principles.
 
+## v2.0.1 - Upcoming
+
+### Added
+
+- Added support for PHP 8.6
+
 ## v2.0.0 - 2026-07-20
 
 ### Changed
