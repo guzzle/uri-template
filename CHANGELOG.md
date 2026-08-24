@@ -4,7 +4,7 @@ All notable changes to `uri-template` will be documented in this file.
 
 Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) principles.
 
-## v2.0.1 - Upcoming
+## v2.0.1 - 2026-08-24
 
 ### Added
 
