@@ -8,7 +8,7 @@ Updates should follow the [Keep a CHANGELOG](http://keepachangelog.com/) princip
 
 ### Added
 
-- Added PHP 8.6 to the supported and tested versions
+- Added support for PHP 8.6
 
 ## v2.0.0 - 2026-07-20
 
