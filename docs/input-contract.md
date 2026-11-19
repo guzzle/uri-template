@@ -50,26 +50,25 @@ any `__toString()` method runs, so an object cannot change another referenced
 variable through a PHP reference. Stringable objects are then converted to
 strings once per value position, in template order, and scalars are converted
 to their expansion strings, so a repeated variable keeps a static value even
-when a `__toString()` method changes the float precision or the locale
-mid-expansion. String values and map keys are validated as UTF-8 while values
-are formed, so value errors surface in member order. Exceptions thrown by
-`__toString()` propagate unchanged; they surface while values are formed, after
-template syntax validation and before any part of the URI is produced, and may
-preempt validation errors for values formed later.
+when a `__toString()` method changes the float precision mid-expansion. String
+values and map keys are validated as UTF-8 while values are formed, so value
+errors surface in member order. Exceptions thrown by `__toString()` propagate
+unchanged; they surface while values are formed, after template syntax
+validation and before any part of the URI is produced, and may preempt
+validation errors for values formed later.
 
 Booleans expand as `1` and `0` at every nesting level.
 
-Floats expand using PHP's float-to-string conversion with the decimal separator
-normalized to `.`, so output does not depend on the process locale, including on
-PHP 7.4 where the plain cast honors `LC_NUMERIC`. The conversion rounds to the
-`precision` ini setting (`14` by default), so `0.1 + 0.2` expands as `0.3`, and
-uses scientific notation, such as `1.0E+20`, when fixed notation would need more
-significant digits than `precision` allows or the magnitude is below `0.0001`.
-The `+` in an exponent is percent-encoded as `%2B` except under reserved and
-fragment expansion. Non-finite floats are not supported: `INF`, `-INF`, and
-`NAN` throw `InvalidArgumentException`. Format floats yourself, for example
-with `number_format()` or `sprintf()`, when a specific decimal representation
-is required.
+Floats expand using PHP's float-to-string conversion, which always uses `.` as
+the decimal separator, so output does not depend on the process locale. The
+conversion rounds to the `precision` ini setting (`14` by default), so
+`0.1 + 0.2` expands as `0.3`, and uses scientific notation, such as `1.0E+20`,
+when fixed notation would need more significant digits than `precision` allows
+or the magnitude is below `0.0001`. The `+` in an exponent is percent-encoded as
+`%2B` except under reserved and fragment expansion. Non-finite floats are not
+supported: `INF`, `-INF`, and `NAN` throw `InvalidArgumentException`. Format
+floats yourself, for example with `number_format()` or `sprintf()`, when a
+specific decimal representation is required.
 
 An empty string is a defined value and is expanded. An empty array is treated as
 undefined and omitted. Missing variables and variables set to `null` are treated

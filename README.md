@@ -7,7 +7,7 @@ values from an array.
 
 Use this package when an API describes paths or links with URI templates. If you
 only need to send HTTP requests, start with
-[`guzzlehttp/guzzle`](https://github.com/guzzle/guzzle/blob/8.0/README.md);
+[`guzzlehttp/guzzle`](https://github.com/guzzle/guzzle/blob/9.0/README.md);
 install this package directly when your application needs URI template
 expansion.
 
@@ -21,6 +21,7 @@ composer require guzzlehttp/uri-template
 
 | Version | Status       | PHP Version  |
 |---------|--------------|--------------|
+| 3.0     | Experimental | >=8.0,<8.7   |
 | 2.0     | Latest       | >=7.4,<8.7   |
 | 1.0     | Maintenance  | >=7.2.5,<8.7 |
 
