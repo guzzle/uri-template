@@ -530,8 +530,8 @@ final class UriTemplate
                                 // Nested arrays must allow for deeply nested structures.
                                 // Members were converted to their expansion
                                 // strings while values were formed, so
-                                // http_build_query's own locale-sensitive
-                                // float conversion is never used.
+                                // http_build_query's own float conversion
+                                // is never used.
                                 $var = \http_build_query([$rawKey => $var], '', '&', \PHP_QUERY_RFC3986);
                                 if ($var === '') {
                                     continue;
@@ -630,10 +630,6 @@ final class UriTemplate
      * from the empty string and matches the http_build_query semantics used
      * by the nested query-array extension.
      *
-     * Floats are formatted with "." as the decimal separator regardless of
-     * the process locale, because the plain float-to-string cast honors
-     * LC_NUMERIC before PHP 8.0.
-     *
      * @param mixed $value
      */
     private static function stringifyValue($value): string
@@ -642,32 +638,7 @@ final class UriTemplate
             return $value ? '1' : '0';
         }
 
-        if (\is_float($value)) {
-            return self::stringifyFloat($value);
-        }
-
         return (string) $value;
-    }
-
-    /**
-     * Convert a float to its expansion string independently of the locale.
-     *
-     * Before PHP 8.0 the float-to-string cast honors LC_NUMERIC, so a
-     * comma-decimal locale such as de_DE renders 3.5 as "3,5". Normalizing
-     * the locale decimal separator back to "." keeps expansion output
-     * deterministic across runtimes while preserving the precision-dependent
-     * formatting of the cast.
-     */
-    private static function stringifyFloat(float $value): string
-    {
-        $string = (string) $value;
-        $decimalPoint = \localeconv()['decimal_point'] ?? '.';
-
-        if ('.' !== $decimalPoint && '' !== $decimalPoint) {
-            $string = \str_replace($decimalPoint, '.', $string);
-        }
-
-        return $string;
     }
 
     /**
@@ -1118,11 +1089,10 @@ final class UriTemplate
      * here, so their __toString() methods are never called again during
      * expansion, and scalars are converted to their expansion strings, so
      * repeated occurrences render identically even when a __toString()
-     * method changes the float precision or the locale mid-expansion.
-     * String values are validated as UTF-8 in the same pass, per spec
-     * section 1.6, so all value errors surface in member order while
-     * values are formed. Null is returned unchanged because it marks an
-     * undefined member.
+     * method changes the float precision mid-expansion. String values are
+     * validated as UTF-8 in the same pass, per spec section 1.6, so all
+     * value errors surface in member order while values are formed. Null
+     * is returned unchanged because it marks an undefined member.
      *
      * @param mixed $value
      */
@@ -1298,9 +1268,9 @@ final class UriTemplate
 
                 // Scalars are converted to their expansion strings while
                 // values are formed, so http_build_query never applies its
-                // own locale-sensitive float conversion and repeated
-                // occurrences render identically even when the float
-                // precision changes mid-expansion.
+                // own float conversion and repeated occurrences render
+                // identically even when the float precision changes
+                // mid-expansion.
                 $normalized[$key] = self::stringifyValue($member);
                 continue;
             }

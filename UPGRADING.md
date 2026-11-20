@@ -1,6 +1,23 @@
 Guzzle URI Template Upgrade Guide
 =================================
 
+2.x to 3.0
+----------
+
+Guzzle URI Template 3.0 is a major release that raises the minimum PHP version.
+Template expansion is unchanged.
+
+#### PHP Version and Dependencies
+
+Guzzle URI Template 3.0 requires PHP `^8.0`. Guzzle URI Template 2.x supported
+PHP `^7.4 || ^8.0`.
+
+If your application still supports PHP 7.4, continue using Guzzle URI Template
+2.x until your minimum PHP version is raised.
+
+Guzzle URI Template 3.0 no longer requires `symfony/polyfill-php80` and has no
+runtime package dependencies beyond PHP.
+
 1.x to 2.0
 ----------
 
