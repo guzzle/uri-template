@@ -895,11 +895,12 @@ final class UriTemplateTest extends TestCase
         $previous = \setlocale(\LC_NUMERIC, '0');
         self::assertNotFalse($previous);
 
-        if (\setlocale(\LC_NUMERIC, 'de_DE.UTF-8', 'de_DE.utf8', 'de_DE', 'fr_FR.UTF-8', 'fr_FR.utf8', 'fr_FR') === false) {
-            self::markTestSkipped('No comma-decimal locale is available.');
-        }
-
         try {
+            $locale = \setlocale(\LC_NUMERIC, 'de_DE.UTF-8', 'de_DE.utf8', 'de_DE', 'fr_FR.UTF-8', 'fr_FR.utf8', 'fr_FR');
+            if ($locale === false || \localeconv()['decimal_point'] !== ',') {
+                self::markTestSkipped('No comma-decimal locale is available.');
+            }
+
             self::assertSame('3.5', UriTemplate::expand('{x}', ['x' => 3.5]));
             self::assertSame('?x=3.5', UriTemplate::expand('{?x}', ['x' => 3.5]));
             self::assertSame('?a=3.5', UriTemplate::expand('{?x*}', ['x' => ['a' => 3.5]]));
