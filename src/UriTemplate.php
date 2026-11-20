@@ -184,11 +184,10 @@ final class UriTemplate
      * surfaced while walking the value are deferred the same way.
      *
      * @param array{value:string, modifier:(''|'*'|':'), position?:int} $varspec
-     * @param mixed                                                     $variable
      *
      * @return \InvalidArgumentException|\RuntimeException|null
      */
-    private static function captureShapeRejection(array $varspec, $variable, string $expression, string $operator): ?\Exception
+    private static function captureShapeRejection(array $varspec, mixed $variable, string $expression, string $operator): ?\Exception
     {
         try {
             self::assertVariableShape($varspec, $variable, $expression, $operator);
@@ -207,10 +206,8 @@ final class UriTemplate
      * so a value containing none of the three is shared as it is. Levels
      * beyond the nesting limit are not scanned; shapes that deep are
      * always rejected by validation before their contents are read.
-     *
-     * @param mixed $value
      */
-    private static function valueNeedsForming($value, int $depth): bool
+    private static function valueNeedsForming(mixed $value, int $depth): bool
     {
         if (\is_float($value)) {
             return true;
@@ -245,9 +242,8 @@ final class UriTemplate
      * by walking them instead of being rebuilt first.
      *
      * @param array{value:string, modifier:(''|'*'|':'), position?:int} $varspec
-     * @param mixed                                                     $variable
      */
-    private static function shapeGuaranteesRejection(array $varspec, $variable, string $operator): bool
+    private static function shapeGuaranteesRejection(array $varspec, mixed $variable, string $operator): bool
     {
         if (self::isScalarLike($variable)) {
             return \is_float($variable) && !\is_finite($variable);
@@ -359,12 +355,8 @@ final class UriTemplate
      * without reading their contents, and rebuilding them could
      * materialize a copy-on-write shared array graph of unbounded logical
      * size.
-     *
-     * @param mixed $value
-     *
-     * @return mixed
      */
-    private static function detachValue($value, bool $membersMayNest, int $depth)
+    private static function detachValue(mixed $value, bool $membersMayNest, int $depth): mixed
     {
         if (!\is_array($value) || $depth > self::MAX_VARIABLE_DEPTH) {
             return $value;
@@ -629,10 +621,8 @@ final class UriTemplate
      * Booleans expand as "1" and "0" so that false remains distinguishable
      * from the empty string and matches the http_build_query semantics used
      * by the nested query-array extension.
-     *
-     * @param mixed $value
      */
-    private static function stringifyValue($value): string
+    private static function stringifyValue(mixed $value): string
     {
         if (\is_bool($value)) {
             return $value ? '1' : '0';
@@ -844,9 +834,8 @@ final class UriTemplate
      * against the already formed value.
      *
      * @param array{value:string, modifier:(''|'*'|':'), position?:int} $varspec
-     * @param mixed                                                     $variable
      */
-    private static function assertVariableShape(array $varspec, $variable, string $expression, string $operator): void
+    private static function assertVariableShape(array $varspec, mixed $variable, string $expression, string $operator): void
     {
         if (self::isScalarLike($variable)) {
             if (\is_float($variable) && !\is_finite($variable)) {
@@ -1032,11 +1021,8 @@ final class UriTemplate
      * the prefix-on-composite rule run on every occurrence.
      *
      * @param array{value:string, modifier:(''|'*'|':'), position?:int} $varspec
-     * @param mixed                                                     $variable
-     *
-     * @return mixed
      */
-    private static function normalizeVariableShape(array $varspec, $variable, string $expression, string $operator)
+    private static function normalizeVariableShape(array $varspec, mixed $variable, string $expression, string $operator): mixed
     {
         if (self::isScalarLike($variable)) {
             if (\is_float($variable) && !\is_finite($variable)) {
@@ -1074,10 +1060,7 @@ final class UriTemplate
         return self::normalizeMapShape($varspec['value'], $variable, $expression, $allowNestedArrays, 0);
     }
 
-    /**
-     * @param mixed $value
-     */
-    private static function isScalarLike($value): bool
+    private static function isScalarLike(mixed $value): bool
     {
         return \is_scalar($value) || (\is_object($value) && \method_exists($value, '__toString'));
     }
@@ -1093,10 +1076,8 @@ final class UriTemplate
      * validated as UTF-8 in the same pass, per spec section 1.6, so all
      * value errors surface in member order while values are formed. Null
      * is returned unchanged because it marks an undefined member.
-     *
-     * @param mixed $value
      */
-    private static function formScalarLike($value, string $expression, string $path): ?string
+    private static function formScalarLike(mixed $value, string $expression, string $path): ?string
     {
         if ($value === null) {
             return null;
